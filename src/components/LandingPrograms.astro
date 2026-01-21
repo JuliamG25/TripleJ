@@ -1,0 +1,77 @@
+---
+const programs = [
+  {
+    name: 'Ingeniería de Software',
+    level: 'Profesional Universitario',
+    description: 'Forma profesionales competitivos, creativos e innovadores en el desarrollo de software.',
+  },
+  {
+    name: 'Diseño Gráfico',
+    level: 'Profesional Universitario',
+    description: 'Profesionales creativos que transforman el mundo comunicando desde lo gráfico.',
+  },
+  {
+    name: 'Administración Financiera',
+    level: 'Profesional Universitario',
+    description: 'Líderes en gestión financiera con proyección y crecimiento profesional.',
+  },
+  {
+    name: 'Negocios Internacionales',
+    level: 'Profesional Universitario',
+    description: 'Profesionales preparados para traspasar fronteras con sus conocimientos.',
+  },
+  {
+    name: 'Gestión Logística Empresarial',
+    level: 'Tecnología',
+    description: 'Líderes para desempeñarse en diferentes campos de acción logística.',
+  },
+  {
+    name: 'Administración Turística y Hotelera',
+    level: 'Profesional Universitario',
+    description: 'Comprometidos con la sostenibilidad y la preservación del medio ambiente.',
+  },
+  {
+    name: 'Diseño de Modas',
+    level: 'Profesional Universitario',
+    description: 'Transformando el concepto de moda y rompiendo esquemas con tendencias.',
+  },
+  {
+    name: 'Especialización en Gestión Pública',
+    level: 'Especialista',
+    description: 'Profesionales que aportan al desarrollo de la región con gestión pública.',
+  },
+];
+---
+
+<section id="programas" class="py-20">
+  <div class="container mx-auto px-4">
+    <div class="mx-auto max-w-2xl text-center mb-12">
+      <h2 class="text-3xl font-bold tracking-tight text-foreground mb-4">
+        Programas Académicos
+      </h2>
+      <p class="text-muted-foreground text-lg">
+        8 programas de calidad formando líderes competentes para la región.
+      </p>
+    </div>
+
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {programs.map((program) => (
+        <div class="bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm border-border hover:border-primary/50 transition-colors" astro:key={program.name}>
+          <div class="px-6 pb-2">
+            <span class="inline-flex items-center justify-center rounded-full border px-2 py-0.5 text-xs font-medium w-fit bg-primary/10 text-primary mb-2">
+              {program.level}
+            </span>
+            <h3 class="text-lg font-semibold text-card-foreground leading-tight mb-2">
+              {program.name}
+            </h3>
+          </div>
+          <div class="px-6">
+            <p class="text-sm text-muted-foreground">
+              {program.description}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

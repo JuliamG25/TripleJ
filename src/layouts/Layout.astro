@@ -1,0 +1,37 @@
+---
+import '../styles/globals.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'FESC - Sistema de Gestión de Proyectos',
+  description = 'Fundación de Estudios Superiores Comfanorte - Plataforma de gestión de proyectos académicos',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content={description} />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <meta name="generator" content="astro" />
+    <title>{title}</title>
+  </head>
+  <body class="font-sans antialiased">
+    <slot />
+  </body>
+</html>
+
+<style is:global>
+  @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+  
+  :root {
+    --font-roboto: 'Roboto', 'Calibri', sans-serif;
+    --font-roboto-mono: 'Roboto Mono', monospace;
+  }
+</style>

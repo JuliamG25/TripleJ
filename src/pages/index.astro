@@ -1,0 +1,22 @@
+---
+import Layout from '../layouts/Layout.astro';
+import LandingHeader from '../components/LandingHeader.astro';
+import LandingHero from '../components/LandingHero.astro';
+import LandingFeatures from '../components/LandingFeatures.astro';
+import LandingPrograms from '../components/LandingPrograms.astro';
+import LandingCTA from '../components/LandingCTA.astro';
+import LandingFooter from '../components/LandingFooter.astro';
+---
+
+<Layout>
+  <div class="min-h-screen flex flex-col bg-background">
+    <LandingHeader />
+    <main class="flex-1">
+      <LandingHero />
+      <LandingFeatures />
+      <LandingPrograms />
+      <LandingCTA />
+    </main>
+    <LandingFooter />
+  </div>
+</Layout>

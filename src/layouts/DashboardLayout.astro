@@ -1,0 +1,16 @@
+---
+import Layout from './Layout.astro';
+import { DashboardLayoutWrapper } from '../islands/DashboardLayoutWrapper';
+
+interface Props {
+  title?: string;
+}
+
+const { title = 'Dashboard - FESC' } = Astro.props;
+---
+
+<Layout title={title}>
+  <DashboardLayoutWrapper client:load>
+    <slot />
+  </DashboardLayoutWrapper>
+</Layout>

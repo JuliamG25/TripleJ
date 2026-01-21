@@ -1,0 +1,57 @@
+---
+const features = [
+  {
+    title: 'Dashboard Intuitivo',
+    description: 'Panel de control con métricas en tiempo real y acceso rápido a todas las funcionalidades del sistema.',
+  },
+  {
+    title: 'Tablero Kanban',
+    description: 'Gestiona tus tareas visualmente con arrastrar y soltar. Organiza el trabajo de forma ágil y eficiente.',
+  },
+  {
+    title: 'Gestión de Equipos',
+    description: 'Asigna roles, define responsabilidades y colabora con tu equipo de manera efectiva.',
+  },
+  {
+    title: 'Comentarios en Tiempo Real',
+    description: 'Comunícate con tu equipo directamente en las tareas. Mantén el contexto y el historial.',
+  },
+  {
+    title: 'Reportes y Métricas',
+    description: 'Analiza el progreso de tus proyectos con estadísticas detalladas y reportes personalizados.',
+  },
+  {
+    title: 'Control de Acceso',
+    description: 'Sistema de roles con permisos granulares. Administrador, Líder y Desarrollador.',
+  },
+];
+---
+
+<section id="caracteristicas" class="py-20 bg-secondary/30">
+  <div class="container mx-auto px-4">
+    <div class="mx-auto max-w-2xl text-center mb-12">
+      <h2 class="text-3xl font-bold tracking-tight text-foreground mb-4">
+        Características del Sistema
+      </h2>
+      <p class="text-muted-foreground text-lg">
+        Herramientas diseñadas para optimizar la gestión de proyectos académicos en la FESC.
+      </p>
+    </div>
+
+    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {features.map((feature) => (
+        <div key={feature.title} class="bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm border-border hover:shadow-lg transition-shadow">
+          <div class="px-6">
+            <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+              <div class="h-6 w-6 text-primary">📊</div>
+            </div>
+            <h3 class="text-xl font-semibold text-card-foreground mb-2">{feature.title}</h3>
+            <p class="text-sm text-muted-foreground">
+              {feature.description}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
