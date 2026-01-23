@@ -54,3 +54,23 @@ export interface Project {
   tasks: Task[]
   createdAt: Date
 }
+
+export type MeetingType = 'presencial' | 'virtual'
+export type MeetingStatus = 'programada' | 'en-curso' | 'completada' | 'cancelada'
+
+export interface Meeting {
+  id: string
+  title: string
+  description: string
+  startDate: Date
+  endDate: Date
+  type: MeetingType
+  meetLink?: string
+  projectId: string
+  participants: User[]
+  createdBy: User
+  status: MeetingStatus
+  location?: string
+  createdAt: Date
+  updatedAt: Date
+}

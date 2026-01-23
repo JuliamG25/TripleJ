@@ -105,6 +105,11 @@ JWT_SECRET=clave-super-segura-generada-con-openssl
 APP_URL=https://tu-dominio.com
 ```
 
+**Nota sobre APP_URL**: 
+- El sistema intentará detectar automáticamente la URL desde los headers del request
+- Si estás detrás de un proxy/load balancer, asegúrate de que los headers `X-Forwarded-Proto` y `Host` estén configurados correctamente
+- `APP_URL` se usa como fallback si la detección automática falla
+
 ## 🔒 Seguridad
 
 ### ✅ Buenas Prácticas

@@ -1,0 +1,8 @@
+---
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import { UsersPage } from '@/islands/UsersPage';
+---
+
+<DashboardLayout title="Usuarios">
+  <UsersPage client:load />
+</DashboardLayout>

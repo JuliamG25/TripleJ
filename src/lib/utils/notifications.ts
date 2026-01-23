@@ -48,12 +48,12 @@ export async function notifyTaskAssigned(
             assignedBy.name
           );
         } catch (emailError) {
-          console.warn('⚠️ Error al enviar email de tarea asignada (no crítico):', emailError);
+          // Error no crítico al enviar email
         }
       }
     }
   } catch (error) {
-    console.error('Error al crear notificación de tarea asignada:', error);
+    // Error al crear notificación
   }
 }
 
@@ -110,11 +110,9 @@ export async function notifyTaskOverdue(
           developerNames
         );
       } catch (emailError) {
-        console.warn('⚠️ Error al enviar email de tarea vencida (no crítico):', emailError);
       }
     }
   } catch (error) {
-    console.error('Error al crear notificación de tarea vencida:', error);
   }
 }
 
@@ -148,7 +146,6 @@ export async function checkAndNotifyOverdueTasks(): Promise<void> {
       }
     }
   } catch (error) {
-    console.error('Error al verificar tareas vencidas:', error);
   }
 }
 
@@ -195,12 +192,10 @@ export async function notifyTaskUpdated(
             updatedBy.name
           );
         } catch (emailError) {
-          console.warn('⚠️ Error al enviar email de tarea actualizada (no crítico):', emailError);
         }
       }
     }
   } catch (error) {
-    console.error('Error al crear notificación de tarea actualizada:', error);
   }
 }
 
@@ -257,7 +252,6 @@ export async function notifyCommentAdded(
             commentContent
           );
         } catch (emailError) {
-          console.warn('⚠️ Error al enviar email de comentario (no crítico):', emailError);
         }
       }
 
@@ -286,7 +280,6 @@ export async function notifyCommentAdded(
               commentContent
             );
           } catch (emailError) {
-            console.warn('⚠️ Error al enviar email de comentario (no crítico):', emailError);
           }
         }
       }
@@ -320,12 +313,10 @@ export async function notifyCommentAdded(
               commentContent
             );
           } catch (emailError) {
-            console.warn('⚠️ Error al enviar email de comentario (no crítico):', emailError);
           }
         }
       }
     }
   } catch (error) {
-    console.error('Error al crear notificación de comentario:', error);
   }
 }

@@ -80,7 +80,6 @@ export const POST: APIRoute = async (context) => {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('❌ Error en POST /api/auth/upload-avatar:', error);
     
     return new Response(
       JSON.stringify({

@@ -133,7 +133,6 @@ export const PUT: APIRoute = async (context) => {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('❌ Error en PUT /api/auth/profile:', error);
     
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map((err: any) => err.message);

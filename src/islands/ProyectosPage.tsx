@@ -6,6 +6,7 @@ import { Button } from './Button'
 import { Users, Calendar, FolderKanban } from 'lucide-react'
 import { useAppStore, useProjectsWithTasks, type AppState } from '@/lib/store'
 import { CreateProjectForm } from './CreateProjectForm'
+import { EditProjectForm } from './EditProjectForm'
 import { canCreateOrEdit } from '@/lib/utils/permissions'
 
 export function ProyectosPage() {
@@ -112,8 +113,13 @@ export function ProyectosPage() {
             ? Math.round((completed / project.tasks.length) * 100) 
             : 0
 
+          const canEdit = canCreate && (
+            currentUser?.role === 'administrador' || 
+            (currentUser?.role === 'lider' && project.leader.id === currentUser.id)
+          )
+
           return (
-            <Card key={project.id} className="border-border hover:shadow-lg transition-shadow">
+            <Card key={project.id} className="border-border hover:shadow-lg transition-shadow group">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -124,7 +130,15 @@ export function ProyectosPage() {
                       {project.description}
                     </CardDescription>
                   </div>
-                  <FolderKanban className="h-5 w-5 text-primary flex-shrink-0 ml-2" />
+                  <div className="flex items-center gap-2">
+                    {canEdit && (
+                      <EditProjectForm 
+                        project={project} 
+                        onSuccess={handleProjectCreated}
+                      />
+                    )}
+                    <FolderKanban className="h-5 w-5 text-primary flex-shrink-0" />
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -150,7 +164,9 @@ export function ProyectosPage() {
                 <div className="flex items-center justify-between pt-2 border-t border-border">
                   <div>
                     <p className="text-xs text-muted-foreground">Líder del proyecto</p>
-                    <p className="text-sm font-medium text-card-foreground">{project.leader.name}</p>
+                    <p className="text-sm font-medium text-card-foreground">
+                      {project.leader?.name || 'Sin líder asignado'}
+                    </p>
                   </div>
                   <a 
                     href={`/dashboard/proyectos/${project.id}`}

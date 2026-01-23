@@ -3,7 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IProject extends Document {
   name: string;
   description: string;
-  leader: mongoose.Types.ObjectId;
+  leader: mongoose.Types.ObjectId | null;
   members: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
@@ -24,7 +24,8 @@ const ProjectSchema = new Schema<IProject>(
     leader: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'El líder del proyecto es requerido'],
+      required: false, // Permitir null temporalmente cuando se elimina un líder
+      default: null,
     },
     members: [
       {

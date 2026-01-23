@@ -59,30 +59,18 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Cargar datos
   loadData: async () => {
     try {
-      console.log('🔄 [Store] Iniciando carga de datos...')
       set({ loading: true, error: null })
       
-          // Cargar usuario actual
-          const storedUser = authApi.getStoredUser()
-          console.log('👤 [Store] Usuario almacenado:', storedUser ? storedUser.email : 'No encontrado')
-          if (storedUser) {
-            // Asegurar que el ID sea string
-            const user = {
-              ...storedUser,
-              id: String(storedUser.id)
-            }
-            console.log('👤 [Store] Usuario configurado:', {
-              id: user.id,
-              email: user.email,
-              role: user.role,
-              idType: typeof user.id
-            })
-            set({ currentUser: user })
-          }
+      const storedUser = authApi.getStoredUser()
+      if (storedUser) {
+        const user = {
+          ...storedUser,
+          id: String(storedUser.id)
+        }
+        set({ currentUser: user })
+      }
 
-      // Verificar autenticación
       if (!authApi.isAuthenticated()) {
-        console.warn('⚠️ [Store] No hay token de autenticación')
         set({ 
           error: 'No autenticado. Por favor inicia sesión.',
           loading: false 
@@ -92,43 +80,27 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
         return
       }
-
-      console.log('📡 [Store] Cargando proyectos y tareas...')
       
-      // Cargar proyectos, tareas y notificaciones con timeout
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Timeout: La solicitud tardó demasiado. Verifica que el servidor esté corriendo.')), 8000)
       )
 
       const [projectsData, tasksData] = await Promise.race([
         Promise.all([
-          projectsApi.getAll().catch(err => {
-            console.error('❌ [Store] Error al cargar proyectos:', err)
-            throw err
-          }),
-          tasksApi.getAll().catch(err => {
-            console.error('❌ [Store] Error al cargar tareas:', err)
-            throw err
-          }),
+          projectsApi.getAll(),
+          tasksApi.getAll(),
         ]),
         timeoutPromise,
       ]) as [Project[], Task[]]
 
-      // Cargar notificaciones en paralelo (no crítico si falla)
-      // Se carga después de definir todas las funciones usando setTimeout
-      // para evitar problemas de referencia circular
       if (typeof window !== 'undefined') {
         setTimeout(() => {
           const loadNotificationsFn = get().loadNotifications
           if (loadNotificationsFn) {
-            loadNotificationsFn().catch(err => {
-              console.warn('⚠️ [Store] Error al cargar notificaciones:', err)
-            })
+            loadNotificationsFn().catch(() => {})
           }
         }, 100)
       }
-
-      console.log('✅ [Store] Datos cargados:', { projects: projectsData.length, tasks: tasksData.length })
       
       set({
         projects: projectsData,
@@ -136,10 +108,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         error: null,
         loading: false,
       })
-      
-      console.log('✅ [Store] Estado actualizado, loading=false')
     } catch (error: any) {
-      console.error('❌ [Store] Error al cargar datos:', error)
       
       const errorMessage = error.message || 'Error al cargar los datos. Verifica que MongoDB esté corriendo y que el servidor esté activo.'
       
@@ -152,7 +121,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       
       // Si es error de autenticación, redirigir a login
       if (error.message?.includes('No autenticado') || error.message?.includes('401')) {
-        console.warn('🔒 [Store] Error de autenticación, redirigiendo...')
         if (typeof window !== 'undefined') {
           setTimeout(() => authApi.logout(), 1000)
         }
@@ -169,21 +137,26 @@ export const useAppStore = create<AppState>((set, get) => ({
       }))
       return newProject
     } catch (error) {
-      console.error('Error al crear proyecto:', error)
       throw error
     }
   },
 
-  // Actualizar proyecto (para refrescar después de cambios en miembros)
-  updateProject: async (projectId: string) => {
+  // Actualizar proyecto (para refrescar después de cambios en miembros o edición)
+  updateProject: async (projectId: string, data?: Partial<Project>) => {
     try {
-      const updatedProject = await projectsApi.getById(projectId)
+      let updatedProject: Project
+      if (data) {
+        // Si se proporcionan datos, actualizar usando la API
+        updatedProject = await projectsApi.update(projectId, data)
+      } else {
+        // Si no, solo recargar desde la API
+        updatedProject = await projectsApi.getById(projectId)
+      }
       set((state) => ({
         projects: state.projects.map(p => p.id === projectId ? updatedProject : p)
       }))
       return updatedProject
     } catch (error) {
-      console.error('Error al actualizar proyecto:', error)
       throw error
     }
   },
@@ -250,7 +223,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         dueDate: taskData.dueDate,
       })
       
-      console.log('✅ [Store] Tarea creada y agregada al store:', {
         taskId: newTask.id,
         title: newTask.title,
         assigneesCount: newTask.assignees.length,
@@ -262,7 +234,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       }))
       return newTask
     } catch (error) {
-      console.error('Error al crear tarea:', error)
       throw error
     }
   },
@@ -285,7 +256,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       }))
       return newComment
     } catch (error) {
-      console.error('Error al crear comentario:', error)
       throw error
     }
   },
@@ -299,7 +269,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         unreadNotificationsCount: unreadCount,
       })
     } catch (error) {
-      console.error('Error al cargar notificaciones:', error)
       // No lanzar error, solo loguear
     }
   },
@@ -315,7 +284,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         unreadNotificationsCount: Math.max(0, state.unreadNotificationsCount - 1),
       }))
     } catch (error) {
-      console.error('Error al marcar notificación como leída:', error)
       throw error
     }
   },
@@ -329,7 +297,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         unreadNotificationsCount: 0,
       }))
     } catch (error) {
-      console.error('Error al marcar todas las notificaciones como leídas:', error)
       throw error
     }
   },

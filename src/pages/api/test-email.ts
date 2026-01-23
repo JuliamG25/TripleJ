@@ -41,7 +41,6 @@ export const POST: APIRoute = async (context) => {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('❌ Error al enviar email de prueba:', error);
     return new Response(
       JSON.stringify({
         success: false,

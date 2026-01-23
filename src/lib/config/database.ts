@@ -21,22 +21,16 @@ export const connectDB = async (): Promise<void> => {
   try {
     await mongoose.connect(config.mongoURI);
     isConnected = true;
-    
-    console.log('✅ MongoDB conectado correctamente');
   } catch (error) {
-    console.error('❌ Error al conectar con MongoDB:', error);
     isConnected = false;
-    throw error; // Lanzar error en lugar de hacer exit
+    throw error;
   }
 };
 
-// Manejar eventos de conexión
 mongoose.connection.on('disconnected', () => {
-  console.log('⚠️ MongoDB desconectado');
   isConnected = false;
 });
 
-mongoose.connection.on('error', (error) => {
-  console.error('❌ Error de MongoDB:', error);
+mongoose.connection.on('error', () => {
   isConnected = false;
 });

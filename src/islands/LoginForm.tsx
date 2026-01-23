@@ -183,6 +183,16 @@ export function LoginForm() {
         )}
       </Button>
 
+      {/* Forgot Password Link */}
+      <div className="text-center">
+        <a
+          href="/forgot-password"
+          className="text-sm text-primary hover:text-fesc-hover transition-colors hover:underline"
+        >
+          ¿Olvidaste tu contraseña?
+        </a>
+      </div>
+
       {/* Demo Notice */}
       {selectedRole && (
         <div className="rounded-lg bg-secondary/50 p-4 border border-border">

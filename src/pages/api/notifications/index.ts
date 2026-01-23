@@ -4,7 +4,7 @@ import { authenticate } from '@/lib/middleware/auth';
 import { connectDB } from '@/lib/config/database';
 
 // Asegurar conexión a DB
-connectDB().catch(console.error);
+connectDB().catch(() => {});
 
 export const GET: APIRoute = async (context) => {
   try {
@@ -51,7 +51,6 @@ export const GET: APIRoute = async (context) => {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('❌ Error en GET /api/notifications:', error);
     return new Response(
       JSON.stringify({
         success: false,
@@ -133,7 +132,6 @@ export const PUT: APIRoute = async (context) => {
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('❌ Error en PUT /api/notifications:', error);
     return new Response(
       JSON.stringify({
         success: false,

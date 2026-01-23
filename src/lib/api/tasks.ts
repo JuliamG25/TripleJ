@@ -26,12 +26,7 @@ const transformTask = (task: any): Task => {
             avatar: assignee.avatar,
           }
         }
-        // Si es solo un ID (ObjectId) - esto no debería pasar si está poblado correctamente
         if (assignee) {
-          console.warn('⚠️ [transformTask] Assignee sin datos completos:', {
-            taskId: task._id || task.id,
-            assignee: assignee._id || assignee.id || assignee
-          })
           return {
             id: String(assignee._id || assignee.id || assignee),
             name: '',
@@ -44,15 +39,6 @@ const transformTask = (task: any): Task => {
       .filter((a: any) => a !== null)
   }
   
-  // Debug
-  if (assignees.length > 0) {
-    console.log('✅ [transformTask] Tarea transformada:', {
-      taskId: task._id || task.id,
-      title: task.title,
-      assigneesCount: assignees.length,
-      assignees: assignees.map((a: any) => ({ id: a.id, name: a.name }))
-    })
-  }
 
   // Manejar projectId - puede venir como objeto poblado o como ID
   let projectIdStr = ''
@@ -90,31 +76,6 @@ const transformTask = (task: any): Task => {
     updatedAt: new Date(task.updatedAt),
   }
   
-  // Debug completo
-  console.log('🔄 [transformTask] Tarea transformada completa:', {
-    id: transformedTask.id,
-    title: transformedTask.title,
-    projectId: transformedTask.projectId,
-    assigneesCount: transformedTask.assignees.length,
-    assignees: transformedTask.assignees.map((a: any) => ({
-      id: String(a.id),
-      name: a.name,
-      email: a.email,
-      role: a.role
-    })),
-    rawAssignees: task.assignees,
-    rawAssigneesType: typeof task.assignees,
-    rawAssigneesIsArray: Array.isArray(task.assignees),
-    rawAssigneesLength: task.assignees?.length || 0
-  })
-  
-  // Si no hay assignees pero debería haberlos, mostrar advertencia
-  if (transformedTask.assignees.length === 0 && task.assignees && Array.isArray(task.assignees) && task.assignees.length > 0) {
-    console.warn('⚠️ [transformTask] Tarea tiene assignees en raw pero no se transformaron:', {
-      taskId: transformedTask.id,
-      rawAssignees: task.assignees
-    })
-  }
   
   return transformedTask
 }

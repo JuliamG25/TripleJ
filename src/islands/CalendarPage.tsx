@@ -3,10 +3,11 @@ import { Calendar } from './Calendar'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './Card'
 import { Badge } from './Badge'
 import { useAppStore } from '@/lib/store'
-import type { Task } from '@/lib/types'
-import { format, isSameDay, startOfDay } from 'date-fns'
+import { meetingsApi } from '@/lib/api/meetings'
+import type { Task, Meeting, User } from '@/lib/types'
+import { format, isSameDay, startOfDay, isWithinInterval } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { CalendarIcon, Clock, User } from 'lucide-react'
+import { CalendarIcon, Clock, User as UserIcon, Video, MapPin } from 'lucide-react'
 import { isTaskOverdue } from '@/lib/utils/task-helpers'
 
 export function CalendarPage() {
@@ -15,6 +16,40 @@ export function CalendarPage() {
   const currentUser = useAppStore((state) => state.currentUser)
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [month, setMonth] = useState<Date>(new Date())
+  const [meetings, setMeetings] = useState<Meeting[]>([])
+  const [loadingMeetings, setLoadingMeetings] = useState(false)
+
+  // Cargar reuniones del mes actual (solo las que involucran al usuario actual)
+  useEffect(() => {
+    const loadMeetings = async () => {
+      if (!currentUser) return
+      
+      try {
+        setLoadingMeetings(true)
+        const startOfMonthDate = new Date(month.getFullYear(), month.getMonth(), 1)
+        const endOfMonthDate = new Date(month.getFullYear(), month.getMonth() + 1, 0, 23, 59, 59)
+        const meetingsData = await meetingsApi.getAll(
+          undefined,
+          startOfMonthDate.toISOString(),
+          endOfMonthDate.toISOString()
+        )
+        
+        // Filtrar solo las reuniones donde el usuario es participante o creador
+        const userMeetings = meetingsData.filter(meeting => {
+          const isParticipant = meeting.participants.some(p => p.id === currentUser.id)
+          const isCreator = meeting.createdBy.id === currentUser.id
+          return isParticipant || isCreator
+        })
+        
+        setMeetings(userMeetings)
+      } catch (err: any) {
+        console.error('Error al cargar reuniones:', err)
+      } finally {
+        setLoadingMeetings(false)
+      }
+    }
+    loadMeetings()
+  }, [month, currentUser])
 
   // Obtener tareas con fecha de entrega
   const tasksWithDueDate = useMemo(() => {
@@ -126,18 +161,42 @@ export function CalendarPage() {
     return dateTasks.some(task => isTaskOverdue(task))
   }
 
+  // Verificar si una fecha tiene reuniones
+  const hasMeetingsOnDate = (date: Date) => {
+    return meetings.some(meeting => {
+      const start = startOfDay(new Date(meeting.startDate))
+      const end = startOfDay(new Date(meeting.endDate))
+      const checkDate = startOfDay(date)
+      return isSameDay(start, checkDate) || isSameDay(end, checkDate) || 
+             (checkDate >= start && checkDate <= end)
+    })
+  }
+
+  // Obtener reuniones para la fecha seleccionada
+  const meetingsForSelectedDate = useMemo(() => {
+    if (!selectedDate) return []
+    return meetings.filter(meeting => {
+      const start = startOfDay(new Date(meeting.startDate))
+      const end = startOfDay(new Date(meeting.endDate))
+      const selected = startOfDay(selectedDate)
+      return isSameDay(start, selected) || isSameDay(end, selected) || 
+             (selected >= start && selected <= end)
+    })
+  }, [selectedDate, meetings])
+
   // Modificar el componente Calendar para mostrar indicadores y colores
   const modifiers = {
     hasTasks: (date: Date) => hasTasksOnDate(date),
     hasPending: (date: Date) => hasPendingTasksOnDate(date),
     allCompleted: (date: Date) => allTasksCompletedOnDate(date),
     hasOverdue: (date: Date) => hasOverdueTasksOnDate(date),
+    hasMeetings: (date: Date) => hasMeetingsOnDate(date),
   }
 
   // Colores más sutiles para líderes y administradores
   const isDeveloper = currentUser?.role === 'desarrollador'
   
-  // Prioridad: hasOverdue > hasPending > allCompleted
+  // Prioridad: hasOverdue > hasPending > allCompleted > hasMeetings
   const modifiersClassNames = {
     hasTasks: 'relative',
     hasOverdue: 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/40 dark:to-red-800/30 hover:from-red-100 hover:to-red-200 dark:hover:from-red-900/50 dark:hover:to-red-800/40 text-red-900 dark:text-red-100 border-2 border-red-300 dark:border-red-700 font-semibold shadow-md flex items-center justify-center',
@@ -147,6 +206,7 @@ export function CalendarPage() {
     allCompleted: isDeveloper
       ? 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/40 dark:to-green-800/30 hover:from-green-100 hover:to-green-200 dark:hover:from-green-900/50 dark:hover:to-green-800/40 text-green-900 dark:text-green-100 border border-green-200 dark:border-green-800/50 font-medium shadow-sm flex items-center justify-center'
       : 'relative after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1.5 after:h-1.5 after:rounded-full after:bg-green-400 dark:after:bg-green-500',
+    hasMeetings: 'relative before:absolute before:top-1 before:right-1 before:w-2 before:h-2 before:rounded-full before:bg-blue-500 dark:before:bg-blue-400',
   }
 
   return (
@@ -183,7 +243,7 @@ export function CalendarPage() {
                 />
               </div>
               {/* Leyenda */}
-              <div className="flex items-center gap-4 mt-4 pt-4 border-t border-border/50">
+              <div className="flex items-center gap-4 mt-4 pt-4 border-t border-border/50 flex-wrap">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-yellow-100 dark:bg-yellow-900/40 border border-yellow-200 dark:border-yellow-800/50"></div>
                   <span className="text-xs text-muted-foreground">Tareas pendientes</span>
@@ -191,6 +251,10 @@ export function CalendarPage() {
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-green-100 dark:bg-green-900/40 border border-green-200 dark:border-green-800/50"></div>
                   <span className="text-xs text-muted-foreground">Todas completadas</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                  <span className="text-xs text-muted-foreground">Reuniones</span>
                 </div>
               </div>
             </CardContent>
@@ -213,23 +277,77 @@ export function CalendarPage() {
                 </div>
               </CardTitle>
               <CardDescription className="text-base">
-                {tasksForSelectedDate.length === 0
-                  ? 'No hay tareas programadas'
-                  : `${tasksForSelectedDate.length} tarea${tasksForSelectedDate.length > 1 ? 's' : ''} programada${tasksForSelectedDate.length > 1 ? 's' : ''}`
+                {tasksForSelectedDate.length === 0 && meetingsForSelectedDate.length === 0
+                  ? 'No hay actividades programadas'
+                  : `${tasksForSelectedDate.length} tarea${tasksForSelectedDate.length !== 1 ? 's' : ''}${tasksForSelectedDate.length > 0 && meetingsForSelectedDate.length > 0 ? ' y ' : ''}${meetingsForSelectedDate.length} reunión${meetingsForSelectedDate.length !== 1 ? 'es' : ''}`
                 }
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {tasksForSelectedDate.length === 0 ? (
+              {tasksForSelectedDate.length === 0 && meetingsForSelectedDate.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <div className="p-4 bg-muted/30 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
                     <Clock className="h-10 w-10 opacity-50" />
                   </div>
-                  <p className="font-medium">No hay tareas</p>
+                  <p className="font-medium">No hay actividades</p>
                   <p className="text-sm mt-1">para esta fecha</p>
                 </div>
               ) : (
                 <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                  {/* Reuniones */}
+                  {meetingsForSelectedDate.map((meeting) => (
+                    <div
+                      key={meeting.id}
+                      className="group p-4 border-2 rounded-xl hover:border-blue-500/50 hover:shadow-md transition-all duration-200 bg-gradient-to-br from-blue-50/50 to-background dark:from-blue-900/10"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            {meeting.type === 'virtual' ? (
+                              <Video className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            ) : (
+                              <MapPin className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            )}
+                            <h4 className="font-semibold text-sm truncate">{meeting.title}</h4>
+                          </div>
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {getProjectName(meeting.projectId)}
+                            </p>
+                            <span className="text-xs font-medium text-muted-foreground">
+                              • {format(new Date(meeting.startDate), "HH:mm")} - {format(new Date(meeting.endDate), "HH:mm")}
+                            </span>
+                          </div>
+                          {meeting.participants.length > 0 && (
+                            <div className="flex items-center gap-1.5 mb-2">
+                              <UserIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="text-xs text-muted-foreground font-medium">
+                                {meeting.participants.map((p) => p.name.split(' ')[0]).join(', ')}
+                              </span>
+                            </div>
+                          )}
+                          {meeting.type === 'virtual' && meeting.meetLink && (
+                            <a
+                              href={meeting.meetLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                            >
+                              <Video className="h-3 w-3" />
+                              Unirse a la reunión
+                            </a>
+                          )}
+                          {meeting.type === 'presencial' && meeting.location && (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              {meeting.location}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                   {tasksForSelectedDate.map((task) => (
                     <div
                       key={task.id}
@@ -251,7 +369,7 @@ export function CalendarPage() {
                           </div>
                           {task.assignees.length > 0 && (
                             <div className="flex items-center gap-1.5 mb-3">
-                              <User className="h-3.5 w-3.5 text-muted-foreground" />
+                              <UserIcon className="h-3.5 w-3.5 text-muted-foreground" />
                               <span className="text-xs text-muted-foreground font-medium">
                                 {task.assignees.map(a => a.name.split(' ')[0]).join(', ')}
                               </span>
@@ -351,7 +469,7 @@ export function CalendarPage() {
                         </p>
                         {task.assignees.length > 0 && (
                           <div className="flex items-center gap-1.5">
-                            <User className="h-3.5 w-3.5 text-muted-foreground" />
+                            <UserIcon className="h-3.5 w-3.5 text-muted-foreground" />
                             <span className="text-xs text-muted-foreground font-medium">
                               {task.assignees.map(a => a.name.split(' ')[0]).join(', ')}
                             </span>

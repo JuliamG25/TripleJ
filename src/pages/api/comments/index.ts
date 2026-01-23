@@ -45,7 +45,6 @@ export const GET: APIRoute = async (context) => {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('❌ Error en GET /api/comments:', error);
     return new Response(
       JSON.stringify({
         success: false,
@@ -134,7 +133,6 @@ export const POST: APIRoute = async (context) => {
       );
     }
 
-    console.error('❌ Error en POST /api/comments:', error);
     return new Response(
       JSON.stringify({
         success: false,

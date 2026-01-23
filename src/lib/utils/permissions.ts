@@ -32,52 +32,13 @@ export function filterTasksByRole(tasks: Task[], user: User | null): Task[] {
   // Comparar IDs como strings para evitar problemas de tipo
   const userId = String(user.id)
   
-  console.log('🔍 [filterTasksByRole] Iniciando filtrado:', {
-    userId,
-    userEmail: user.email,
-    userRole: user.role,
-    totalTasks: tasks.length,
-    tasksPreview: tasks.slice(0, 3).map(t => ({
-      id: t.id,
-      title: t.title,
-      assigneesCount: t.assignees?.length || 0,
-      assignees: t.assignees?.map(a => ({
-        id: String(a.id),
-        name: a.name,
-        email: a.email
-      })) || []
-    }))
-  })
-  
   const filtered = tasks.filter(task => {
     if (!task.assignees || task.assignees.length === 0) {
-      console.log('❌ [filterTasksByRole] Tarea sin asignados:', {
-        taskId: task.id,
-        taskTitle: task.title
-      })
-      return false // Si no tiene asignados, desarrolladores no la ven
+      return false
     }
     
     const assigneeIds = task.assignees.map(a => String(a.id))
-    const isAssigned = assigneeIds.includes(userId)
-    
-    console.log(`🔍 [filterTasksByRole] Tarea "${task.title}":`, {
-      taskId: task.id,
-      userId,
-      assigneeIds,
-      isAssigned,
-      match: assigneeIds.includes(userId)
-    })
-    
-    return isAssigned
-  })
-  
-  console.log('📊 [filterTasksByRole] Resultado del filtrado:', {
-    totalTasks: tasks.length,
-    filteredTasks: filtered.length,
-    userId,
-    userRole: user.role,
-    filteredTaskIds: filtered.map(t => t.id)
+    return assigneeIds.includes(userId)
   })
   
   return filtered
@@ -97,4 +58,55 @@ export function canMoveTask(task: Task, user: User | null): boolean {
   
   // Desarrolladores solo pueden mover sus tareas
   return task.assignees.some(assignee => assignee.id === user.id)
+}
+
+/**
+ * Verifica si el usuario puede crear usuarios
+ * - Administrador: puede crear líderes y desarrolladores
+ * - Líder: puede crear desarrolladores
+ * - Desarrollador: no puede crear usuarios
+ */
+export function canCreateUsers(user: User | null): boolean {
+  if (!user) return false
+  return user.role === 'administrador' || user.role === 'lider'
+}
+
+/**
+ * Verifica si el usuario puede crear un rol específico
+ * - Administrador: puede crear cualquier rol
+ * - Líder: solo puede crear desarrolladores
+ * - Desarrollador: no puede crear usuarios
+ */
+export function canCreateRole(user: User | null, role: UserRole): boolean {
+  if (!user) return false
+  
+  if (user.role === 'administrador') {
+    return true // Administrador puede crear cualquier rol
+  }
+  
+  if (user.role === 'lider') {
+    return role === 'desarrollador' // Líder solo puede crear desarrolladores
+  }
+  
+  return false // Desarrollador no puede crear usuarios
+}
+
+/**
+ * Verifica qué roles puede ver el usuario
+ * - Administrador: ve todos los usuarios (todos los roles)
+ * - Líder: solo ve desarrolladores
+ * - Desarrollador: no ve gestión de usuarios
+ */
+export function getVisibleRoles(user: User | null): UserRole[] {
+  if (!user) return []
+  
+  if (user.role === 'administrador') {
+    return ['administrador', 'lider', 'desarrollador']
+  }
+  
+  if (user.role === 'lider') {
+    return ['desarrollador']
+  }
+  
+  return []
 }

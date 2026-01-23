@@ -5,13 +5,9 @@ import { connectDB } from '@/lib/config/database';
 
 export const GET: APIRoute = async (context) => {
   try {
-    console.log('📥 GET /api/auth/me - Iniciando...');
-    
     try {
       await connectDB();
-      console.log('✅ MongoDB conectado');
     } catch (dbError: any) {
-      console.error('❌ Error al conectar MongoDB:', dbError);
       return new Response(
         JSON.stringify({
           success: false,
@@ -24,7 +20,6 @@ export const GET: APIRoute = async (context) => {
     const authResult = await authenticate(context);
     
     if (!authResult) {
-      console.warn('⚠️ No autenticado');
       return new Response(
         JSON.stringify({
           success: false,
@@ -35,12 +30,10 @@ export const GET: APIRoute = async (context) => {
     }
 
     const { user } = authResult;
-    console.log('👤 Usuario autenticado:', user.email);
     
     const userData = await User.findById(user._id);
 
     if (!userData) {
-      console.warn('⚠️ Usuario no encontrado:', user._id);
       return new Response(
         JSON.stringify({
           success: false,
@@ -49,8 +42,6 @@ export const GET: APIRoute = async (context) => {
         { status: 404, headers: { 'Content-Type': 'application/json' } }
       );
     }
-
-    console.log('✅ Usuario encontrado:', userData.email);
 
     return new Response(
       JSON.stringify({
@@ -68,7 +59,6 @@ export const GET: APIRoute = async (context) => {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('❌ Error en GET /api/auth/me:', error);
     return new Response(
       JSON.stringify({
         success: false,

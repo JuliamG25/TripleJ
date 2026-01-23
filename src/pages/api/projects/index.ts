@@ -2,16 +2,13 @@ import type { APIRoute } from 'astro';
 import { Project } from '@/lib/models/Project';
 import { authenticate } from '@/lib/middleware/auth';
 import { connectDB } from '@/lib/config/database';
+import mongoose from 'mongoose';
 
 export const GET: APIRoute = async (context) => {
   try {
-    console.log('📥 GET /api/projects - Iniciando...')
-    
     try {
       await connectDB();
-      console.log('✅ MongoDB conectado')
     } catch (dbError: any) {
-      console.error('❌ Error al conectar MongoDB:', dbError)
       return new Response(
         JSON.stringify({
           success: false,
@@ -24,7 +21,6 @@ export const GET: APIRoute = async (context) => {
     const authResult = await authenticate(context);
     
     if (!authResult) {
-      console.warn('⚠️ No autenticado')
       return new Response(
         JSON.stringify({
           success: false,
@@ -35,11 +31,9 @@ export const GET: APIRoute = async (context) => {
     }
 
     const { user } = authResult;
-    console.log('👤 Usuario autenticado:', user.email)
     
     let query: any = {};
     
-    // Si no es administrador, solo mostrar proyectos donde es líder o miembro
     if (user.role !== 'administrador') {
       query.$or = [
         { leader: user._id },
@@ -52,8 +46,6 @@ export const GET: APIRoute = async (context) => {
       .populate('members', 'name email role')
       .sort({ createdAt: -1 });
 
-    console.log(`✅ Proyectos encontrados: ${projects.length}`)
-
     return new Response(
       JSON.stringify({
         success: true,
@@ -63,7 +55,6 @@ export const GET: APIRoute = async (context) => {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('❌ Error en GET /api/projects:', error)
     return new Response(
       JSON.stringify({
         success: false,
@@ -93,11 +84,32 @@ export const POST: APIRoute = async (context) => {
     const { user } = authResult;
     const { name, description, members } = await context.request.json();
 
+    // Convertir emails a IDs si se proporcionan como emails
+    let memberIds: mongoose.Types.ObjectId[] = [];
+    if (members && Array.isArray(members) && members.length > 0) {
+      const { User } = await import('@/lib/models/User');
+      for (const member of members) {
+        // Si es un email, buscar el usuario
+        if (typeof member === 'string' && member.includes('@')) {
+          const foundUser = await User.findOne({ email: member.toLowerCase() });
+          if (foundUser) {
+            memberIds.push(foundUser._id);
+          }
+        } else {
+          // Si ya es un ID, usarlo directamente
+          try {
+            memberIds.push(new mongoose.Types.ObjectId(member));
+          } catch (e) {
+          }
+        }
+      }
+    }
+
     const project = await Project.create({
       name,
       description,
       leader: user._id,
-      members: members || [],
+      members: memberIds,
     });
 
     await project.populate('leader', 'name email role');

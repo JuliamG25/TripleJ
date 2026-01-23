@@ -128,7 +128,6 @@ export const PUT: APIRoute = async (context) => {
           await notifyTaskAssigned(task._id.toString(), addedAssignees, user);
         }
       } catch (notifError) {
-        console.error('⚠️ Error al crear notificaciones (no crítico):', notifError);
         // Continuar aunque falle la notificación
       }
     }

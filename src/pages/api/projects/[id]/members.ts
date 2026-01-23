@@ -97,7 +97,6 @@ export const PUT: APIRoute = async (context) => {
       });
 
       if (tasksToReassign.length > 0) {
-        console.log(`🔄 Reasignando ${tasksToReassign.length} tareas al líder del proyecto`);
         
         for (const task of tasksToReassign) {
           // Remover al usuario de los assignees y agregar al líder si no está ya
@@ -138,7 +137,6 @@ export const PUT: APIRoute = async (context) => {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('❌ Error en PUT /api/projects/[id]/members:', error);
     return new Response(
       JSON.stringify({
         success: false,

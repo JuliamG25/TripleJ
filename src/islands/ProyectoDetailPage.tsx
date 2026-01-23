@@ -5,6 +5,8 @@ import { Progress } from './Progress'
 import { Button } from './Button'
 import { MiniKanban } from './MiniKanban'
 import { CreateTaskForm } from './CreateTaskForm'
+import { CreateMeetingForm } from './CreateMeetingForm'
+import { EditProjectForm } from './EditProjectForm'
 import { ProjectMembersManager } from './ProjectMembersManager'
 import { useAppStore, type AppState } from '@/lib/store'
 import { projectsApi } from '@/lib/api/projects'
@@ -76,6 +78,18 @@ export function ProyectoDetailPage({ projectId }: ProyectoDetailPageProps) {
     }
   }
 
+  const handleProjectUpdated = async () => {
+    // Recargar datos después de editar proyecto
+    await loadData()
+    // Recargar proyecto también
+    try {
+      const projectData = await projectsApi.getById(projectId)
+      setProject(projectData)
+    } catch (err: any) {
+      console.error('Error al recargar proyecto:', err)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -118,7 +132,17 @@ export function ProyectoDetailPage({ projectId }: ProyectoDetailPageProps) {
           <p className="text-muted-foreground">{project.description}</p>
         </div>
         {canCreate && (
-          <CreateTaskForm projectId={projectId} onSuccess={handleTaskCreated} />
+          <div className="flex gap-2">
+            {(currentUser?.role === 'administrador' || 
+              (currentUser?.role === 'lider' && project.leader.id === currentUser.id)) && (
+              <EditProjectForm 
+                project={project} 
+                onSuccess={handleProjectUpdated}
+              />
+            )}
+            <CreateMeetingForm projectId={projectId} onSuccess={handleProjectUpdated} />
+            <CreateTaskForm projectId={projectId} onSuccess={handleTaskCreated} />
+          </div>
         )}
       </div>
 

@@ -7,6 +7,8 @@ import {
   ListTodo, 
   KanbanSquare,
   Calendar as CalendarIcon,
+  Users,
+  Video,
   ChevronLeft,
   ChevronRight,
   LogOut
@@ -32,6 +34,8 @@ const baseNavigation: NavigationItem[] = [
   { name: 'Estadísticas', href: '/dashboard/backlog', icon: ListTodo, roles: ['lider', 'administrador'] },
   { name: 'Kanban', href: '/dashboard/kanban', icon: KanbanSquare },
   { name: 'Calendario', href: '/dashboard/calendario', icon: CalendarIcon },
+  { name: 'Reuniones', href: '/dashboard/reuniones', icon: Video },
+  { name: 'Usuarios', href: '/dashboard/usuarios', icon: Users, roles: ['lider', 'administrador'] },
 ]
 
 export function DashboardSidebar({ user, isOpen, onToggle }: DashboardSidebarProps) {

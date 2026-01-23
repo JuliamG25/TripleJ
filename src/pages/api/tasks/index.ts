@@ -6,13 +6,9 @@ import { connectDB } from '@/lib/config/database';
 
 export const GET: APIRoute = async (context) => {
   try {
-    console.log('📥 GET /api/tasks - Iniciando...')
-    
     try {
       await connectDB();
-      console.log('✅ MongoDB conectado')
     } catch (dbError: any) {
-      console.error('❌ Error al conectar MongoDB:', dbError)
       return new Response(
         JSON.stringify({
           success: false,
@@ -25,7 +21,6 @@ export const GET: APIRoute = async (context) => {
     const authResult = await authenticate(context);
     
     if (!authResult) {
-      console.warn('⚠️ No autenticado')
       return new Response(
         JSON.stringify({
           success: false,
@@ -40,29 +35,17 @@ export const GET: APIRoute = async (context) => {
     const projectId = url.searchParams.get('projectId');
     const status = url.searchParams.get('status');
 
-    console.log('👤 Usuario solicitando tareas:', {
-      userId: user._id,
-      userEmail: user.email,
-      userRole: user.role
-    })
-
     let query: any = {};
 
-    // Filtrar por proyecto si se proporciona
     if (projectId) {
       query.projectId = projectId;
-      console.log('📌 Filtro por proyecto específico:', projectId)
     }
 
-    // Filtrar por estado si se proporciona
     if (status) {
       query.status = status;
-      console.log('📌 Filtro por estado:', status)
     }
 
-    // Si no es administrador, solo mostrar tareas de proyectos donde es miembro
     if (user.role !== 'administrador') {
-      console.log('🔍 Buscando proyectos del usuario...')
       const userProjects = await Project.find({
         $or: [
           { leader: user._id },
@@ -71,14 +54,8 @@ export const GET: APIRoute = async (context) => {
       }).select('_id');
 
       const projectIds = userProjects.map(p => p._id);
-      console.log('📁 Proyectos encontrados para el usuario:', {
-        count: projectIds.length,
-        projectIds: projectIds.map((id: any) => id.toString())
-      })
       
       if (projectIds.length === 0) {
-        console.warn('⚠️ Usuario no es miembro de ningún proyecto')
-        // Si no es miembro de ningún proyecto, no puede ver tareas
         return new Response(
           JSON.stringify({
             success: true,
@@ -90,11 +67,7 @@ export const GET: APIRoute = async (context) => {
       }
       
       query.projectId = { $in: projectIds };
-    } else {
-      console.log('👑 Usuario es administrador, mostrando todas las tareas')
     }
-    
-    console.log('🔍 Query final para buscar tareas:', JSON.stringify(query, null, 2))
 
     const tasks = await Task.find(query)
       .populate('assignees', 'name email role')
@@ -112,27 +85,10 @@ export const GET: APIRoute = async (context) => {
     try {
       const { checkAndNotifyOverdueTasks } = await import('@/lib/utils/notifications');
       // Ejecutar en background sin esperar
-      checkAndNotifyOverdueTasks().catch(err => {
-        console.error('Error al verificar tareas vencidas:', err);
-      });
+      checkAndNotifyOverdueTasks().catch(() => {});
     } catch (err) {
       // No crítico si falla
-      console.warn('No se pudo verificar tareas vencidas:', err);
     }
-
-    console.log(`✅ Tareas encontradas: ${tasks.length}`)
-    
-    // Debug: verificar assignees
-    tasks.forEach((task: any, index: number) => {
-      console.log(`📋 Tarea ${index + 1}:`, {
-        id: task._id,
-        title: task.title,
-        assigneesRaw: task.assignees,
-        assigneesCount: task.assignees?.length || 0,
-        assigneesArray: Array.isArray(task.assignees) ? 'Sí' : 'No',
-        assigneesType: typeof task.assignees
-      })
-    })
 
     return new Response(
       JSON.stringify({
@@ -143,7 +99,6 @@ export const GET: APIRoute = async (context) => {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('❌ Error en GET /api/tasks:', error)
     return new Response(
       JSON.stringify({
         success: false,
@@ -199,7 +154,6 @@ export const POST: APIRoute = async (context) => {
         const { notifyTaskAssigned } = await import('@/lib/utils/notifications');
         await notifyTaskAssigned(task._id.toString(), assigneesArray, user);
       } catch (notifError) {
-        console.error('⚠️ Error al crear notificaciones (no crítico):', notifError);
         // Continuar aunque falle la notificación
       }
     }
@@ -213,7 +167,6 @@ export const POST: APIRoute = async (context) => {
       { status: 201, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('❌ Error en POST /api/tasks:', error);
     
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map((err: any) => err.message);
