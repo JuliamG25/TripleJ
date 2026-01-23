@@ -28,6 +28,7 @@ export interface Task {
   assignees: User[]
   projectId: string
   comments: Comment[]
+  dueDate?: Date
   createdAt: Date
   updatedAt: Date
 }
@@ -35,7 +36,7 @@ export interface Task {
 export interface Notification {
   id: string
   userId: string
-  type: 'task_assigned' | 'comment_added'
+  type: 'task_assigned' | 'comment_added' | 'task_overdue' | 'task_updated'
   title: string
   message: string
   taskId?: string

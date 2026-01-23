@@ -39,6 +39,127 @@ export async function notifyTaskAssigned(
 }
 
 /**
+ * Crea notificaciones cuando una tarea se vence
+ */
+export async function notifyTaskOverdue(
+  taskId: string
+): Promise<void> {
+  try {
+    const task = await Task.findById(taskId)
+      .populate('assignees')
+      .populate('projectId');
+    
+    if (!task) return;
+
+    const project = task.projectId as any;
+    const assignees = task.assignees as any[];
+    
+    // Solo notificar si la tarea no está completada
+    if (task.status === 'hecha') return;
+
+    // Obtener el líder del proyecto
+    const projectWithLeader = await Project.findById(project._id).populate('leader');
+    const leader = (projectWithLeader as any)?.leader;
+
+    if (!leader) return;
+
+    // Obtener nombres de los desarrolladores asignados que no completaron la tarea
+    const developerNames = assignees
+      .filter((a: any) => a.role === 'desarrollador')
+      .map((a: any) => a.name)
+      .join(', ');
+
+    if (developerNames) {
+      // Notificar al líder del proyecto
+      await Notification.create({
+        userId: leader._id,
+        type: 'task_overdue',
+        title: 'Tarea vencida',
+        message: `La tarea "${task.title}" del proyecto "${project.name}" venció. Desarrollador(es) asignado(s): ${developerNames}`,
+        taskId: task._id,
+        projectId: project._id,
+        read: false,
+      });
+    }
+  } catch (error) {
+    console.error('Error al crear notificación de tarea vencida:', error);
+  }
+}
+
+/**
+ * Verifica y notifica tareas vencidas
+ */
+export async function checkAndNotifyOverdueTasks(): Promise<void> {
+  try {
+    const now = new Date();
+    
+    // Buscar tareas con fecha de entrega pasada y que no estén completadas
+    const overdueTasks = await Task.find({
+      dueDate: { $exists: true, $lt: now },
+      status: { $ne: 'hecha' }
+    })
+      .populate('assignees')
+      .populate('projectId');
+
+    for (const task of overdueTasks) {
+      // Verificar si ya existe una notificación reciente para esta tarea (últimas 24 horas)
+      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const existingNotification = await Notification.findOne({
+        taskId: task._id,
+        type: 'task_overdue',
+        createdAt: { $gte: oneDayAgo }
+      });
+
+      // Solo crear notificación si no existe una reciente
+      if (!existingNotification) {
+        await notifyTaskOverdue(task._id.toString());
+      }
+    }
+  } catch (error) {
+    console.error('Error al verificar tareas vencidas:', error);
+  }
+}
+
+/**
+ * Crea notificaciones cuando se actualiza una tarea
+ */
+export async function notifyTaskUpdated(
+  taskId: string,
+  updatedBy: IUser
+): Promise<void> {
+  try {
+    const task = await Task.findById(taskId)
+      .populate('assignees')
+      .populate('projectId');
+    
+    if (!task) return;
+
+    const project = task.projectId as any;
+    const assignees = task.assignees as any[];
+
+    // Notificar solo a desarrolladores asignados (no al que actualizó)
+    for (const assignee of assignees) {
+      if (
+        assignee.role === 'desarrollador' &&
+        assignee._id.toString() !== updatedBy._id.toString()
+      ) {
+        await Notification.create({
+          userId: assignee._id,
+          type: 'task_updated',
+          title: 'Tarea actualizada',
+          message: `${updatedBy.name} actualizó la tarea "${task.title}" en el proyecto "${project.name}"`,
+          taskId: task._id,
+          projectId: project._id,
+          read: false,
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error al crear notificación de tarea actualizada:', error);
+  }
+}
+
+/**
  * Crea notificaciones cuando se agrega un comentario
  */
 export async function notifyCommentAdded(

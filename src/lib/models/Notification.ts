@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-export type NotificationType = 'task_assigned' | 'comment_added';
+export type NotificationType = 'task_assigned' | 'comment_added' | 'task_overdue' | 'task_updated';
 
 export interface INotification extends Document {
   userId: mongoose.Types.ObjectId;
@@ -23,7 +23,7 @@ const NotificationSchema = new Schema<INotification>(
     },
     type: {
       type: String,
-      enum: ['task_assigned', 'comment_added'],
+      enum: ['task_assigned', 'comment_added', 'task_overdue', 'task_updated'],
       required: true,
     },
     title: {

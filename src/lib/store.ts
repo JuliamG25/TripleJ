@@ -218,6 +218,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           : []
       }
       if (data.projectId) updateData.projectId = data.projectId
+      if (data.dueDate !== undefined) updateData.dueDate = data.dueDate
       
       const updatedTask = await tasksApi.update(taskId, updateData)
       set((state) => ({
@@ -246,6 +247,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         priority: taskData.priority,
         assignees: assignees.length > 0 ? assignees : undefined,
         projectId: taskData.projectId,
+        dueDate: taskData.dueDate,
       })
       
       console.log('✅ [Store] Tarea creada y agregada al store:', {

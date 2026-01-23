@@ -85,6 +85,7 @@ const transformTask = (task: any): Task => {
       content: comment.content,
       createdAt: new Date(comment.createdAt),
     })),
+    dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
     createdAt: new Date(task.createdAt),
     updatedAt: new Date(task.updatedAt),
   }
@@ -95,7 +96,7 @@ const transformTask = (task: any): Task => {
     title: transformedTask.title,
     projectId: transformedTask.projectId,
     assigneesCount: transformedTask.assignees.length,
-    assignees: transformedTask.assignees.map(a => ({
+    assignees: transformedTask.assignees.map((a: any) => ({
       id: String(a.id),
       name: a.name,
       email: a.email,
@@ -151,8 +152,14 @@ export const tasksApi = {
     priority?: string;
     assignees?: string | string[];
     projectId: string;
+    dueDate?: Date | string;
   }): Promise<Task> {
-    const response = await apiClient.post<SingleTaskResponse>('/api/tasks', data);
+    // Serializar dueDate a ISO string si es un Date
+    const payload = {
+      ...data,
+      dueDate: data.dueDate ? (data.dueDate instanceof Date ? data.dueDate.toISOString() : data.dueDate) : undefined,
+    };
+    const response = await apiClient.post<SingleTaskResponse>('/api/tasks', payload);
     
     if (!response.success || !response.data) {
       throw new Error(response.message || 'Error al crear tarea');
@@ -162,7 +169,14 @@ export const tasksApi = {
   },
 
   async update(id: string, data: Partial<Task>): Promise<Task> {
-    const response = await apiClient.put<SingleTaskResponse>(`/api/tasks/${id}`, data);
+    // Serializar dueDate a ISO string si es un Date
+    const payload = {
+      ...data,
+      dueDate: data.dueDate !== undefined 
+        ? (data.dueDate instanceof Date ? data.dueDate.toISOString() : data.dueDate)
+        : undefined,
+    };
+    const response = await apiClient.put<SingleTaskResponse>(`/api/tasks/${id}`, payload);
     
     if (!response.success || !response.data) {
       throw new Error(response.message || 'Error al actualizar tarea');

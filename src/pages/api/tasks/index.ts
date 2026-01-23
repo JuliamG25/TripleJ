@@ -108,6 +108,18 @@ export const GET: APIRoute = async (context) => {
       })
       .sort({ createdAt: -1 });
 
+    // Verificar tareas vencidas y crear notificaciones (en background, no bloquea la respuesta)
+    try {
+      const { checkAndNotifyOverdueTasks } = await import('@/lib/utils/notifications');
+      // Ejecutar en background sin esperar
+      checkAndNotifyOverdueTasks().catch(err => {
+        console.error('Error al verificar tareas vencidas:', err);
+      });
+    } catch (err) {
+      // No crítico si falla
+      console.warn('No se pudo verificar tareas vencidas:', err);
+    }
+
     console.log(`✅ Tareas encontradas: ${tasks.length}`)
     
     // Debug: verificar assignees
@@ -159,7 +171,7 @@ export const POST: APIRoute = async (context) => {
     }
 
     const { user } = authResult;
-    const { title, description, status, priority, assignees, projectId } = await context.request.json();
+    const { title, description, status, priority, assignees, projectId, dueDate } = await context.request.json();
 
     // Convertir assignees a array si viene como string o undefined
     const assigneesArray = Array.isArray(assignees) 
@@ -175,6 +187,7 @@ export const POST: APIRoute = async (context) => {
       priority: priority || 'media',
       assignees: assigneesArray,
       projectId,
+      dueDate: dueDate ? new Date(dueDate) : undefined,
     });
 
     await task.populate('assignees', 'name email role');

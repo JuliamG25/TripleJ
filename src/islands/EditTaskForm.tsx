@@ -4,9 +4,14 @@ import { Input } from './Input'
 import { Label } from './Label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './Card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './Select'
+import { Popover, PopoverContent, PopoverTrigger } from './Popover'
+import { Calendar } from './Calendar'
 import { useAppStore, type AppState } from '@/lib/store'
 import type { TaskPriority, TaskStatus, Task, User } from '@/lib/types'
-import { X, Pencil } from 'lucide-react'
+import { isTaskOverdue } from '@/lib/utils/task-helpers'
+import { X, Pencil, CalendarIcon, Clock } from 'lucide-react'
+import { format, isBefore, startOfDay, setHours, setMinutes, isSameDay } from 'date-fns'
+import { es } from 'date-fns/locale'
 
 interface EditTaskFormProps {
   task: Task
@@ -20,6 +25,10 @@ export function EditTaskForm({ task, onSuccess, onCancel }: EditTaskFormProps) {
   const [status, setStatus] = useState<TaskStatus>(task.status)
   const [priority, setPriority] = useState<TaskPriority>(task.priority)
   const [assignees, setAssignees] = useState<string[]>(task.assignees?.map(a => a.id) || [])
+  const [dueDate, setDueDate] = useState<Date | undefined>(task.dueDate ? new Date(task.dueDate) : undefined)
+  const [dueTime, setDueTime] = useState<string>(
+    task.dueDate ? format(new Date(task.dueDate), "HH:mm") : ''
+  )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
@@ -44,12 +53,47 @@ export function EditTaskForm({ task, onSuccess, onCancel }: EditTaskFormProps) {
     setStatus(task.status)
     setPriority(task.priority)
     setAssignees(task.assignees?.map(a => a.id) || [])
+    const taskDueDate = task.dueDate ? new Date(task.dueDate) : undefined
+    setDueDate(taskDueDate)
+    setDueTime(taskDueDate ? format(taskDueDate, "HH:mm") : '')
   }, [task])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setLoading(true)
+
+    // Validar fecha y hora
+    let finalDueDate: Date | undefined = undefined
+    if (dueDate) {
+      finalDueDate = new Date(dueDate)
+      
+      // Si hay hora seleccionada, combinarla con la fecha
+      if (dueTime) {
+        const [hours, minutes] = dueTime.split(':').map(Number)
+        finalDueDate = setHours(setMinutes(finalDueDate, minutes), hours)
+      } else {
+        // Si no hay hora pero hay fecha, mantener la hora original o establecer a las 23:59
+        if (task.dueDate) {
+          const originalDate = new Date(task.dueDate)
+          finalDueDate = setHours(setMinutes(finalDueDate, originalDate.getMinutes()), originalDate.getHours())
+        } else {
+          finalDueDate = setHours(setMinutes(finalDueDate, 59), 23)
+        }
+      }
+      
+      // Validar que no sea en el pasado (solo si se está cambiando)
+      // Los líderes pueden extender el tiempo de tareas vencidas
+      const currentUser = useAppStore.getState().currentUser
+      const isLeaderOrAdmin = currentUser?.role === 'lider' || currentUser?.role === 'administrador'
+      const isExtendingOverdueTask = isTaskOverdue(task)
+      
+      if (isBefore(finalDueDate, new Date()) && !(isLeaderOrAdmin && isExtendingOverdueTask)) {
+        setError('La fecha y hora de entrega no puede ser en el pasado')
+        setLoading(false)
+        return
+      }
+    }
 
     try {
       await updateTask(task.id, {
@@ -58,6 +102,7 @@ export function EditTaskForm({ task, onSuccess, onCancel }: EditTaskFormProps) {
         status,
         priority,
         assignees: assignees.length > 0 ? assignees.map(id => ({ id } as User)) : [],
+        dueDate: finalDueDate,
       })
       
       setLoading(false)
@@ -144,6 +189,128 @@ export function EditTaskForm({ task, onSuccess, onCancel }: EditTaskFormProps) {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-dueDate">Fecha y hora de entrega (opcional)</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="edit-dueDate"
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dueDate ? format(dueDate, "PPP", { locale: es }) : "Fecha"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    selected={dueDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        const currentUser = useAppStore.getState().currentUser
+                        const isLeaderOrAdmin = currentUser?.role === 'lider' || currentUser?.role === 'administrador'
+                        const isExtendingOverdueTask = isTaskOverdue(task)
+                        
+                        const today = startOfDay(new Date())
+                        const selectedDay = startOfDay(date)
+                        
+                        // Permitir fechas pasadas solo si es líder/admin extendiendo una tarea vencida
+                        if (isBefore(selectedDay, today) && !(isLeaderOrAdmin && isExtendingOverdueTask)) {
+                          setError('No puedes seleccionar una fecha en el pasado')
+                          return
+                        }
+                        setDueDate(date)
+                        setError(null)
+                      }
+                    }}
+                    month={dueDate || new Date()}
+                    onMonthChange={(date) => {}}
+                    modifiers={{
+                      disabled: (date) => {
+                        const currentUser = useAppStore.getState().currentUser
+                        const isLeaderOrAdmin = currentUser?.role === 'lider' || currentUser?.role === 'administrador'
+                        const isExtendingOverdueTask = isTaskOverdue(task)
+                        
+                        // Si es líder/admin extendiendo tarea vencida, permitir todas las fechas
+                        if (isLeaderOrAdmin && isExtendingOverdueTask) {
+                          return false
+                        }
+                        return isBefore(startOfDay(date), startOfDay(new Date()))
+                      }
+                    }}
+                    locale={es}
+                    className="rounded-lg"
+                  />
+                  {dueDate && (
+                    <div className="p-3 border-t">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => {
+                          setDueDate(undefined)
+                          setDueTime('')
+                        }}
+                      >
+                        Limpiar fecha
+                      </Button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+              
+              <div className="relative">
+                <Input
+                  type="time"
+                  id="edit-dueTime"
+                  value={dueTime}
+                  onChange={(e) => {
+                    const time = e.target.value
+                    setDueTime(time)
+                    
+                    if (dueDate && time) {
+                      const currentUser = useAppStore.getState().currentUser
+                      const isLeaderOrAdmin = currentUser?.role === 'lider' || currentUser?.role === 'administrador'
+                      const isExtendingOverdueTask = isTaskOverdue(task)
+                      
+                      const today = startOfDay(new Date())
+                      const selectedDay = startOfDay(dueDate)
+                      if (isSameDay(selectedDay, today) && !(isLeaderOrAdmin && isExtendingOverdueTask)) {
+                        const [hours, minutes] = time.split(':').map(Number)
+                        const selectedDateTime = setHours(setMinutes(new Date(), minutes), hours)
+                        if (isBefore(selectedDateTime, new Date())) {
+                          setError('La hora seleccionada no puede ser en el pasado')
+                          return
+                        }
+                      }
+                      setError(null)
+                    }
+                  }}
+                  className="w-full"
+                  disabled={!dueDate}
+                  min={(() => {
+                    const currentUser = useAppStore.getState().currentUser
+                    const isLeaderOrAdmin = currentUser?.role === 'lider' || currentUser?.role === 'administrador'
+                    const isExtendingOverdueTask = isTaskOverdue(task)
+                    
+                    // Si es líder/admin extendiendo tarea vencida, no restringir hora
+                    if (isLeaderOrAdmin && isExtendingOverdueTask) {
+                      return undefined
+                    }
+                    return dueDate && isSameDay(dueDate, new Date()) ? format(new Date(), "HH:mm") : undefined
+                  })()}
+                />
+                <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              </div>
+            </div>
+            {dueDate && dueTime && (
+              <p className="text-xs text-muted-foreground">
+                Entrega: {format(dueDate, "PPP", { locale: es })} a las {dueTime}
+              </p>
+            )}
           </div>
 
           {projectUsers.length > 0 && (

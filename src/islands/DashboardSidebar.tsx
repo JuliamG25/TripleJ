@@ -6,6 +6,7 @@ import {
   FolderKanban, 
   ListTodo, 
   KanbanSquare,
+  Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
   LogOut
@@ -21,8 +22,9 @@ interface DashboardSidebarProps {
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Proyectos', href: '/dashboard/proyectos', icon: FolderKanban },
-  { name: 'Backlog', href: '/dashboard/backlog', icon: ListTodo },
+  { name: 'Estadísticas', href: '/dashboard/backlog', icon: ListTodo },
   { name: 'Kanban', href: '/dashboard/kanban', icon: KanbanSquare },
+  { name: 'Calendario', href: '/dashboard/calendario', icon: CalendarIcon },
 ]
 
 export function DashboardSidebar({ user, isOpen, onToggle }: DashboardSidebarProps) {

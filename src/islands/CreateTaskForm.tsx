@@ -4,10 +4,14 @@ import { Input } from './Input'
 import { Label } from './Label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './Card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './Select'
+import { Popover, PopoverContent, PopoverTrigger } from './Popover'
+import { Calendar } from './Calendar'
 import { useAppStore, type AppState } from '@/lib/store'
 import { usersApi } from '@/lib/api/users'
 import type { TaskPriority, TaskStatus, User } from '@/lib/types'
-import { Plus, X } from 'lucide-react'
+import { Plus, X, CalendarIcon, Clock } from 'lucide-react'
+import { format, isBefore, startOfDay, setHours, setMinutes, isSameDay } from 'date-fns'
+import { es } from 'date-fns/locale'
 
 interface CreateTaskFormProps {
   projectId: string
@@ -22,6 +26,8 @@ export function CreateTaskForm({ projectId, onSuccess }: CreateTaskFormProps) {
   const [priority, setPriority] = useState<TaskPriority>('media')
   const [assignees, setAssignees] = useState<string[]>([])
   const [availableUsers, setAvailableUsers] = useState<User[]>([])
+  const [dueDate, setDueDate] = useState<Date | undefined>(undefined)
+  const [dueTime, setDueTime] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [loadingUsers, setLoadingUsers] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -73,6 +79,28 @@ export function CreateTaskForm({ projectId, onSuccess }: CreateTaskFormProps) {
     setError(null)
     setLoading(true)
 
+    // Validar fecha y hora
+    let finalDueDate: Date | undefined = undefined
+    if (dueDate) {
+      finalDueDate = new Date(dueDate)
+      
+      // Si hay hora seleccionada, combinarla con la fecha
+      if (dueTime) {
+        const [hours, minutes] = dueTime.split(':').map(Number)
+        finalDueDate = setHours(setMinutes(finalDueDate, minutes), hours)
+      } else {
+        // Si no hay hora, establecer a las 23:59 del día seleccionado
+        finalDueDate = setHours(setMinutes(finalDueDate, 59), 23)
+      }
+      
+      // Validar que no sea en el pasado
+      if (isBefore(finalDueDate, new Date())) {
+        setError('La fecha y hora de entrega no puede ser en el pasado')
+        setLoading(false)
+        return
+      }
+    }
+
     try {
       await addTask({
         title,
@@ -81,6 +109,7 @@ export function CreateTaskForm({ projectId, onSuccess }: CreateTaskFormProps) {
         priority,
         assignees: assignees.length > 0 ? assignees.map(id => ({ id } as User)) : [],
         projectId,
+        dueDate: finalDueDate,
       })
       
       // Reset form
@@ -89,6 +118,8 @@ export function CreateTaskForm({ projectId, onSuccess }: CreateTaskFormProps) {
       setStatus('pendiente')
       setPriority('media')
       setAssignees([])
+      setDueDate(undefined)
+      setDueTime('')
       setIsOpen(false)
       
       if (onSuccess) {
@@ -199,6 +230,100 @@ export function CreateTaskForm({ projectId, onSuccess }: CreateTaskFormProps) {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="dueDate">Fecha y hora de entrega (opcional)</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="dueDate"
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dueDate ? format(dueDate, "PPP", { locale: es }) : "Fecha"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    selected={dueDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        // Si la fecha seleccionada es hoy, asegurar que no sea antes de ahora
+                        const today = startOfDay(new Date())
+                        const selectedDay = startOfDay(date)
+                        if (isBefore(selectedDay, today)) {
+                          setError('No puedes seleccionar una fecha en el pasado')
+                          return
+                        }
+                        setDueDate(date)
+                        setError(null)
+                      }
+                    }}
+                    month={dueDate || new Date()}
+                    onMonthChange={(date) => {}}
+                    modifiers={{
+                      disabled: (date) => isBefore(startOfDay(date), startOfDay(new Date()))
+                    }}
+                    locale={es}
+                    className="rounded-lg"
+                  />
+                  {dueDate && (
+                    <div className="p-3 border-t">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => {
+                          setDueDate(undefined)
+                          setDueTime('')
+                        }}
+                      >
+                        Limpiar fecha
+                      </Button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+              
+              <div className="relative">
+                <Input
+                  type="time"
+                  id="dueTime"
+                  value={dueTime}
+                  onChange={(e) => {
+                    const time = e.target.value
+                    setDueTime(time)
+                    
+                    // Validar que si la fecha es hoy, la hora no sea en el pasado
+                    if (dueDate && time) {
+                      const today = startOfDay(new Date())
+                      const selectedDay = startOfDay(dueDate)
+                      if (isSameDay(selectedDay, today)) {
+                        const [hours, minutes] = time.split(':').map(Number)
+                        const selectedDateTime = setHours(setMinutes(new Date(), minutes), hours)
+                        if (isBefore(selectedDateTime, new Date())) {
+                          setError('La hora seleccionada no puede ser en el pasado')
+                          return
+                        }
+                      }
+                      setError(null)
+                    }
+                  }}
+                  className="w-full"
+                  disabled={!dueDate}
+                  min={dueDate && isSameDay(dueDate, new Date()) ? format(new Date(), "HH:mm") : undefined}
+                />
+                <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              </div>
+            </div>
+            {dueDate && dueTime && (
+              <p className="text-xs text-muted-foreground">
+                Entrega: {format(dueDate, "PPP", { locale: es })} a las {dueTime}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">

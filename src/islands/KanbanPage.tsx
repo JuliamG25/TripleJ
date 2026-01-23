@@ -6,8 +6,11 @@ import { EditTaskForm } from './EditTaskForm'
 import { TaskCommentsModal } from './TaskCommentsModal'
 import { useAppStore, type AppState } from '@/lib/store'
 import type { TaskStatus, Task } from '@/lib/types'
-import { User, Pencil } from 'lucide-react'
+import { User, Pencil, Calendar as CalendarIcon } from 'lucide-react'
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 import { filterTasksByRole, canMoveTask, canCreateOrEdit } from '@/lib/utils/permissions'
+import { isTaskBlocked } from '@/lib/utils/task-helpers'
 
 const columns: { id: TaskStatus; title: string; color: string }[] = [
   { id: 'pendiente', title: 'Pendiente', color: 'bg-gray-500/10 text-gray-500' },
@@ -109,6 +112,16 @@ export function KanbanPage() {
     
     if (!draggedTask || !currentUser) return
     
+    // Verificar si la tarea está bloqueada por vencimiento
+    if (isTaskBlocked(draggedTask)) {
+      // Solo líderes y administradores pueden mover tareas vencidas
+      if (currentUser.role !== 'lider' && currentUser.role !== 'administrador') {
+        alert('Esta tarea está vencida y bloqueada. Contacta al líder del proyecto para extender el tiempo.')
+        setDraggedTask(null)
+        return
+      }
+    }
+    
     // Verificar permisos: desarrolladores solo pueden mover sus tareas
     if (!canMoveTask(draggedTask, currentUser)) {
       console.warn('⚠️ No tienes permiso para mover esta tarea')
@@ -178,9 +191,9 @@ export function KanbanPage() {
                   ) : (
                   <Card 
                     key={task.id}
-                    draggable={canMoveTask(task, currentUser)}
+                    draggable={!!(canMoveTask(task, currentUser) && (!isTaskBlocked(task) || (currentUser && (currentUser.role === 'lider' || currentUser.role === 'administrador'))))}
                     onDragStart={(e) => {
-                      if (canMoveTask(task, currentUser)) {
+                      if (canMoveTask(task, currentUser) && (!isTaskBlocked(task) || (currentUser && (currentUser.role === 'lider' || currentUser.role === 'administrador')))) {
                         handleDragStart(e, task)
                       } else {
                         e.preventDefault()
@@ -189,14 +202,31 @@ export function KanbanPage() {
                     onDragEnd={handleDragEnd}
                     className={`border-border hover:shadow-md transition-all group ${
                       draggedTask?.id === task.id ? 'opacity-50' : ''
-                    } ${canMoveTask(task, currentUser) ? 'cursor-move' : 'cursor-default'}`}
+                    } ${isTaskBlocked(task) ? 'border-red-500/50 bg-red-50/50 dark:bg-red-900/10' : ''} ${
+                      canMoveTask(task, currentUser) && (!isTaskBlocked(task) || (currentUser && (currentUser.role === 'lider' || currentUser.role === 'administrador'))) 
+                        ? 'cursor-move' 
+                        : 'cursor-not-allowed'
+                    }`}
                   >
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between">
                           <CardTitle className="text-sm font-medium text-card-foreground leading-tight">
                             {task.title}
+                            {isTaskBlocked(task) && (
+                              <span className="ml-2 text-xs font-semibold text-red-600 dark:text-red-400">
+                                (Vencida)
+                              </span>
+                            )}
                           </CardTitle>
                           <div className="flex items-center gap-1">
+                            {isTaskBlocked(task) && (
+                              <Badge 
+                                variant="outline"
+                                className="bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20 text-xs"
+                              >
+                                Vencida
+                              </Badge>
+                            )}
                             <Badge 
                               variant="outline"
                               className={`${priorityColors[task.priority]} text-xs`}
@@ -208,7 +238,7 @@ export function KanbanPage() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={(e) => {
+                                onClick={(e: React.MouseEvent) => {
                                   e.stopPropagation()
                                   setEditingTask(task)
                                 }}
@@ -223,6 +253,17 @@ export function KanbanPage() {
                         <p className="text-xs text-muted-foreground line-clamp-2">
                           {task.description}
                         </p>
+                        
+                        {task.dueDate && (
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <CalendarIcon className="h-3.5 w-3.5" />
+                            <span>
+                              {format(new Date(task.dueDate), "d MMM yyyy", { locale: es })} 
+                              {' '}
+                              <span className="font-medium">{format(new Date(task.dueDate), "HH:mm")}</span>
+                            </span>
+                          </div>
+                        )}
                         
                         <div className="flex items-center justify-between pt-2 border-t border-border">
                           {task.assignees.length > 0 ? (

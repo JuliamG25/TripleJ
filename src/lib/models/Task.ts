@@ -27,6 +27,7 @@ const CommentSchema = new Schema<IComment>(
       required: [true, 'El contenido del comentario es requerido'],
       trim: true,
     },
+    
   },
   {
     timestamps: { createdAt: true, updatedAt: false },
@@ -41,6 +42,7 @@ export interface ITask extends Document {
   assignees: mongoose.Types.ObjectId[];
   projectId: mongoose.Types.ObjectId;
   comments: mongoose.Types.ObjectId[];
+  dueDate?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -86,6 +88,10 @@ const TaskSchema = new Schema<ITask>(
         ref: 'Comment',
       },
     ],
+    dueDate: {
+      type: Date,
+      required: false,
+    },
   },
   {
     timestamps: true,

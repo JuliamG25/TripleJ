@@ -86,6 +86,15 @@ export const PUT: APIRoute = async (context) => {
           : [];
     }
 
+    // Manejar dueDate: convertir a Date si viene como string, o establecer como null/undefined si se quiere eliminar
+    if (body.dueDate !== undefined) {
+      if (body.dueDate === null || body.dueDate === '') {
+        body.dueDate = undefined;
+      } else {
+        body.dueDate = new Date(body.dueDate);
+      }
+    }
+
     const oldTask = await Task.findById(context.params.id);
     const task = await Task.findByIdAndUpdate(
       context.params.id,
@@ -120,6 +129,17 @@ export const PUT: APIRoute = async (context) => {
         }
       } catch (notifError) {
         console.error('⚠️ Error al crear notificaciones (no crítico):', notifError);
+        // Continuar aunque falle la notificación
+      }
+    }
+
+    // Notificar a desarrolladores asignados cuando se actualiza la tarea (no crítico si falla)
+    if (task) {
+      try {
+        const { notifyTaskUpdated } = await import('@/lib/utils/notifications');
+        await notifyTaskUpdated(task._id.toString(), user);
+      } catch (notifError) {
+        console.error('⚠️ Error al crear notificación de actualización (no crítico):', notifError);
         // Continuar aunque falle la notificación
       }
     }
