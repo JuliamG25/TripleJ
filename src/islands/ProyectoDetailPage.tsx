@@ -131,6 +131,7 @@ export function ProyectoDetailPage({ projectId }: ProyectoDetailPageProps) {
           <h1 className="text-3xl font-bold text-foreground mb-2">{project.name}</h1>
           <p className="text-muted-foreground">{project.description}</p>
         </div>
+<<<<<<< HEAD
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -155,6 +156,11 @@ export function ProyectoDetailPage({ projectId }: ProyectoDetailPageProps) {
             </>
           )}
         </div>
+=======
+        {canCreate && (
+          <CreateTaskForm projectId={projectId} onSuccess={handleTaskCreated} />
+        )}
+>>>>>>> parent of ddc73cf (vida del proyecto)
       </div>
 
       {/* Stats */}
