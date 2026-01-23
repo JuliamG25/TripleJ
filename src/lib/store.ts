@@ -1,11 +1,10 @@
 import { create } from 'zustand'
-import { shallow } from 'zustand/shallow'
-import type { User, Project, Task, TaskStatus, Comment, Notification } from './types'
-import { projectsApi } from './api/projects'
-import { tasksApi } from './api/tasks'
+import { authApi } from './api/auth'
 import { commentsApi } from './api/comments'
 import { notificationsApi } from './api/notifications'
-import { authApi } from './api/auth'
+import { projectsApi } from './api/projects'
+import { tasksApi } from './api/tasks'
+import type { Comment, Notification, Project, Task, TaskStatus, User } from './types'
 
 export interface AppState {
   // Estado
@@ -221,12 +220,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         assignees: assignees.length > 0 ? assignees : undefined,
         projectId: taskData.projectId,
         dueDate: taskData.dueDate,
-      })
-      
-        taskId: newTask.id,
-        title: newTask.title,
-        assigneesCount: newTask.assignees.length,
-        assignees: newTask.assignees.map(a => ({ id: a.id, name: a.name }))
       })
       
       set((state) => ({
