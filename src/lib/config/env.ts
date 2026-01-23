@@ -16,4 +16,12 @@ export const config = {
   cors: {
     origin: getEnv('CORS_ORIGIN', 'http://localhost:4321'),
   },
+  email: {
+    smtpHost: getEnv('SMTP_HOST', 'smtp.gmail.com'),
+    smtpPort: parseInt(getEnv('SMTP_PORT', '587'), 10),
+    smtpUser: getEnv('SMTP_USER', ''),
+    smtpPassword: getEnv('SMTP_PASSWORD', ''),
+    smtpFrom: getEnv('SMTP_FROM', ''),
+    appUrl: getEnv('APP_URL', 'http://localhost:4321'),
+  },
 };

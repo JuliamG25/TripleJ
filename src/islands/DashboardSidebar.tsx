@@ -11,7 +11,7 @@ import {
   ChevronRight,
   LogOut
 } from 'lucide-react'
-import type { User } from '@/lib/types'
+import type { User, UserRole } from '@/lib/types'
 
 interface DashboardSidebarProps {
   user: User
@@ -19,16 +19,29 @@ interface DashboardSidebarProps {
   onToggle: () => void
 }
 
-const navigation = [
+interface NavigationItem {
+  name: string
+  href: string
+  icon: React.ComponentType<{ className?: string }>
+  roles?: UserRole[]
+}
+
+const baseNavigation: NavigationItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Proyectos', href: '/dashboard/proyectos', icon: FolderKanban },
-  { name: 'Estadísticas', href: '/dashboard/backlog', icon: ListTodo },
+  { name: 'Estadísticas', href: '/dashboard/backlog', icon: ListTodo, roles: ['lider', 'administrador'] },
   { name: 'Kanban', href: '/dashboard/kanban', icon: KanbanSquare },
   { name: 'Calendario', href: '/dashboard/calendario', icon: CalendarIcon },
 ]
 
 export function DashboardSidebar({ user, isOpen, onToggle }: DashboardSidebarProps) {
   const [pathname, setPathname] = useState('')
+  
+  // Filtrar navegación según el rol del usuario
+  const navigation = baseNavigation.filter(item => {
+    if (!item.roles) return true // Si no tiene restricción de roles, mostrar a todos
+    return item.roles.includes(user.role)
+  })
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -136,11 +149,19 @@ export function DashboardSidebar({ user, isOpen, onToggle }: DashboardSidebarPro
         <div className="border-t border-sidebar-border p-4">
           {isOpen ? (
             <div className="flex items-center gap-3 mb-4">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="text-sm font-medium text-primary">
-                  {user.name.split(' ').map(n => n[0]).join('')}
-                </span>
-              </div>
+              {user.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  className="h-10 w-10 rounded-full object-cover border border-sidebar-border"
+                />
+              ) : (
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="text-sm font-medium text-primary">
+                    {user.name.split(' ').map(n => n[0]).join('')}
+                  </span>
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-sidebar-foreground truncate">{user.name}</p>
                 <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
@@ -148,11 +169,19 @@ export function DashboardSidebar({ user, isOpen, onToggle }: DashboardSidebarPro
             </div>
           ) : (
             <div className="flex justify-center mb-4">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="text-sm font-medium text-primary">
-                  {user.name.split(' ').map(n => n[0]).join('')}
-                </span>
-              </div>
+              {user.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  className="h-10 w-10 rounded-full object-cover border border-sidebar-border"
+                />
+              ) : (
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="text-sm font-medium text-primary">
+                    {user.name.split(' ').map(n => n[0]).join('')}
+                  </span>
+                </div>
+              )}
             </div>
           )}
           
@@ -223,11 +252,19 @@ export function DashboardSidebar({ user, isOpen, onToggle }: DashboardSidebarPro
 
         <div className="border-t border-sidebar-border p-4">
           <div className="flex items-center gap-3 mb-4">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <span className="text-sm font-medium text-primary">
-                {user.name.split(' ').map(n => n[0]).join('')}
-              </span>
-            </div>
+            {user.avatar ? (
+              <img
+                src={user.avatar}
+                alt={user.name}
+                className="h-10 w-10 rounded-full object-cover border border-sidebar-border"
+              />
+            ) : (
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <span className="text-sm font-medium text-primary">
+                  {user.name.split(' ').map(n => n[0]).join('')}
+                </span>
+              </div>
+            )}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-sidebar-foreground truncate">{user.name}</p>
               <p className="text-xs text-muted-foreground capitalize">{user.role}</p>

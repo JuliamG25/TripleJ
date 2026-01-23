@@ -6,6 +6,9 @@ import path from 'path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Obtener puerto de variables de entorno o usar el por defecto
+const PORT = parseInt(process.env.PORT || '4321', 10);
+
 // https://astro.build/config
 export default defineConfig({
   integrations: [
@@ -16,7 +19,7 @@ export default defineConfig({
   ],
   output: 'server',
   server: {
-    port: 4321,
+    port: PORT,
   },
   vite: {
     resolve: {

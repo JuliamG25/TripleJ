@@ -120,4 +120,58 @@ export const authApi = {
     if (typeof window === 'undefined') return false;
     return !!localStorage.getItem('fesc-token');
   },
+
+  async updateProfile(data: {
+    name?: string;
+    email?: string;
+    avatar?: string;
+    currentPassword?: string;
+    newPassword?: string;
+  }): Promise<User> {
+    const response = await apiClient.put<{ user: any }>('/api/auth/profile', data);
+
+    if (!response.success || !response.data) {
+      throw new Error(response.message || 'Error al actualizar perfil');
+    }
+
+    const { user } = response.data;
+    const userData = {
+      id: String(user.id || user._id),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      avatar: user.avatar,
+    };
+    
+    // Actualizar localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('fesc-user', JSON.stringify(userData));
+    }
+
+    return userData;
+  },
+
+  async uploadAvatar(avatar: string): Promise<User> {
+    const response = await apiClient.post<{ user: any }>('/api/auth/upload-avatar', { avatar });
+
+    if (!response.success || !response.data) {
+      throw new Error(response.message || 'Error al subir avatar');
+    }
+
+    const { user } = response.data;
+    const userData = {
+      id: String(user.id || user._id),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      avatar: user.avatar,
+    };
+    
+    // Actualizar localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('fesc-user', JSON.stringify(userData));
+    }
+
+    return userData;
+  },
 };

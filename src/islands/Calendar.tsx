@@ -80,6 +80,16 @@ export function Calendar({
       }
     }
     
+    // Aplicar otros modificadores personalizados (como isWeekStart)
+    Object.entries(modifiers).forEach(([modifier, fn]) => {
+      if (!priorityOrder.includes(modifier) && fn(date)) {
+        const className = modifiersClassNames[modifier]
+        if (className) {
+          classes.push(className)
+        }
+      }
+    })
+    
     return classes.join(' ')
   }
 

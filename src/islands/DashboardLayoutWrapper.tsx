@@ -14,7 +14,25 @@ export function DashboardLayoutWrapper({ children }: DashboardLayoutWrapperProps
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [loading, setLoading] = useState(true)
   const loadData = useAppStore((state: AppState) => state.loadData)
-
+  
+  // Aplicar tema al cargar
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    
+    const savedTheme = localStorage.getItem('fesc-theme') as 'light' | 'dark' | 'system' | null
+    const theme = savedTheme || 'system'
+    
+    const root = window.document.documentElement
+    root.classList.remove('light', 'dark')
+    
+    if (theme === 'system') {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+      root.classList.add(systemTheme)
+    } else {
+      root.classList.add(theme)
+    }
+  }, [])
+  
   useEffect(() => {
     const loadUser = async () => {
       if (typeof window === 'undefined') return

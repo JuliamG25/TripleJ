@@ -31,6 +31,7 @@ export function EditTaskForm({ task, onSuccess, onCancel }: EditTaskFormProps) {
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [datePopoverOpen, setDatePopoverOpen] = useState(false)
   
   const updateTask = useAppStore((state: AppState) => state.updateTask)
   const projects = useAppStore((state: AppState) => state.projects)
@@ -194,7 +195,7 @@ export function EditTaskForm({ task, onSuccess, onCancel }: EditTaskFormProps) {
           <div className="space-y-2">
             <Label htmlFor="edit-dueDate">Fecha y hora de entrega (opcional)</Label>
             <div className="grid grid-cols-2 gap-2">
-              <Popover>
+              <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     id="edit-dueDate"
@@ -224,6 +225,7 @@ export function EditTaskForm({ task, onSuccess, onCancel }: EditTaskFormProps) {
                         }
                         setDueDate(date)
                         setError(null)
+                        setDatePopoverOpen(false)
                       }
                     }}
                     month={dueDate || new Date()}

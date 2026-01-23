@@ -31,6 +31,7 @@ export function CreateTaskForm({ projectId, onSuccess }: CreateTaskFormProps) {
   const [loading, setLoading] = useState(false)
   const [loadingUsers, setLoadingUsers] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [datePopoverOpen, setDatePopoverOpen] = useState(false)
   
   const addTask = useAppStore((state: AppState) => state.addTask)
   const projects = useAppStore((state: AppState) => state.projects)
@@ -235,7 +236,7 @@ export function CreateTaskForm({ projectId, onSuccess }: CreateTaskFormProps) {
           <div className="space-y-2">
             <Label htmlFor="dueDate">Fecha y hora de entrega (opcional)</Label>
             <div className="grid grid-cols-2 gap-2">
-              <Popover>
+              <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     id="dueDate"
@@ -260,6 +261,7 @@ export function CreateTaskForm({ projectId, onSuccess }: CreateTaskFormProps) {
                         }
                         setDueDate(date)
                         setError(null)
+                        setDatePopoverOpen(false)
                       }
                     }}
                     month={dueDate || new Date()}

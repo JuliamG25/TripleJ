@@ -4,12 +4,15 @@ import { Badge } from './Badge'
 import { Button } from './Button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './Select'
 import { Label } from './Label'
+import { Input } from './Input'
+import { Popover, PopoverContent, PopoverTrigger } from './Popover'
+import { Calendar } from './Calendar'
 import { useAppStore, type AppState } from '@/lib/store'
-import { FileDown, Filter, BarChart3, User, FolderKanban, CheckCircle2, Clock, AlertTriangle } from 'lucide-react'
+import { FileDown, Filter, BarChart3, User, FolderKanban, CheckCircle2, Clock, AlertTriangle, CalendarIcon } from 'lucide-react'
 import type { Task, Project, User as UserType } from '@/lib/types'
-import { filterTasksByRole, canViewAllTasks } from '@/lib/utils/permissions'
+import { filterTasksByRole, canViewAllTasks, canCreateOrEdit } from '@/lib/utils/permissions'
 import { isTaskOverdue } from '@/lib/utils/task-helpers'
-import { format } from 'date-fns'
+import { format, startOfMonth, endOfMonth, startOfDay, endOfDay, isWithinInterval, isSameMonth, startOfWeek, endOfWeek, addWeeks, subWeeks, isSameDay } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 const priorityColors = {
@@ -31,6 +34,7 @@ const statusColors = {
 }
 
 type FilterStatus = 'en-progreso' | 'hecha' | 'vencida' | 'todos'
+type DateFilterType = 'ninguno' | 'mes' | 'semana' | 'rango'
 
 export function BacklogPage() {
   const allTasks = useAppStore((state: AppState) => state.tasks)
@@ -42,6 +46,19 @@ export function BacklogPage() {
   const [selectedDeveloper, setSelectedDeveloper] = useState<string>('todos')
   const [selectedProject, setSelectedProject] = useState<string>('todos')
   const [selectedStatus, setSelectedStatus] = useState<FilterStatus>('todos')
+  
+  // Filtros de fecha
+  const [dateFilterType, setDateFilterType] = useState<DateFilterType>('ninguno')
+  const [selectedMonth, setSelectedMonth] = useState<Date | undefined>(undefined)
+  const [selectedWeek, setSelectedWeek] = useState<Date | undefined>(undefined)
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined)
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined)
+  
+  // Estados para controlar los popovers
+  const [monthPopoverOpen, setMonthPopoverOpen] = useState(false)
+  const [weekPopoverOpen, setWeekPopoverOpen] = useState(false)
+  const [startDatePopoverOpen, setStartDatePopoverOpen] = useState(false)
+  const [endDatePopoverOpen, setEndDatePopoverOpen] = useState(false)
   
   // Filtrar tareas según el rol del usuario
   const visibleTasks = useMemo(() => {
@@ -99,11 +116,45 @@ export function BacklogPage() {
       }
     }
     
+    // Filtro por fecha
+    if (dateFilterType === 'mes' && selectedMonth) {
+      const monthStart = startOfMonth(selectedMonth)
+      const monthEnd = endOfMonth(selectedMonth)
+      filtered = filtered.filter(task => {
+        if (!task.dueDate) return false
+        const taskDate = new Date(task.dueDate)
+        return isWithinInterval(taskDate, {
+          start: startOfDay(monthStart),
+          end: endOfDay(monthEnd)
+        })
+      })
+    } else if (dateFilterType === 'semana' && selectedWeek) {
+      const weekStart = startOfWeek(selectedWeek, { locale: es })
+      const weekEnd = endOfWeek(selectedWeek, { locale: es })
+      filtered = filtered.filter(task => {
+        if (!task.dueDate) return false
+        const taskDate = new Date(task.dueDate)
+        return isWithinInterval(taskDate, {
+          start: startOfDay(weekStart),
+          end: endOfDay(weekEnd)
+        })
+      })
+    } else if (dateFilterType === 'rango' && startDate && endDate) {
+      filtered = filtered.filter(task => {
+        if (!task.dueDate) return false
+        const taskDate = new Date(task.dueDate)
+        return isWithinInterval(taskDate, {
+          start: startOfDay(startDate),
+          end: endOfDay(endDate)
+        })
+      })
+    }
+    
     return filtered.sort((a, b) => {
       const priorityOrder = { alta: 3, media: 2, baja: 1 }
       return priorityOrder[b.priority] - priorityOrder[a.priority]
     })
-  }, [visibleTasks, selectedDeveloper, selectedProject, selectedStatus])
+  }, [visibleTasks, selectedDeveloper, selectedProject, selectedStatus, dateFilterType, selectedMonth, selectedWeek, startDate, endDate])
   
   // Calcular estadísticas
   const stats = useMemo(() => {
@@ -159,6 +210,15 @@ export function BacklogPage() {
                            selectedStatus === 'hecha' ? 'Completadas' : 'Todos'
         filters.push(`Estado: ${statusLabel}`)
       }
+      if (dateFilterType === 'mes' && selectedMonth) {
+        filters.push(`Mes: ${format(selectedMonth, 'MMMM yyyy', { locale: es })}`)
+      } else if (dateFilterType === 'semana' && selectedWeek) {
+        const weekStart = startOfWeek(selectedWeek, { locale: es })
+        const weekEnd = endOfWeek(selectedWeek, { locale: es })
+        filters.push(`Semana: ${format(weekStart, 'dd/MM/yyyy', { locale: es })} - ${format(weekEnd, 'dd/MM/yyyy', { locale: es })}`)
+      } else if (dateFilterType === 'rango' && startDate && endDate) {
+        filters.push(`Rango: ${format(startDate, 'dd/MM/yyyy', { locale: es })} - ${format(endDate, 'dd/MM/yyyy', { locale: es })}`)
+      }
       
       if (filters.length === 0) {
         filters.push('Sin filtros aplicados')
@@ -207,12 +267,12 @@ export function BacklogPage() {
         const isOverdue = isTaskOverdue(task)
         
         doc.setFontSize(10)
-        doc.setFont(undefined, 'bold')
+        doc.setFont('helvetica', 'bold')
         doc.text(`${index + 1}. ${task.title}`, margin, yPos)
         yPos += 6
         
         doc.setFontSize(9)
-        doc.setFont(undefined, 'normal')
+        doc.setFont('helvetica', 'normal')
         doc.text(`   Proyecto: ${project?.name || 'N/A'}`, margin + 5, yPos)
         yPos += 5
         doc.text(`   Estado: ${statusLabels[task.status]}`, margin + 5, yPos)
@@ -246,6 +306,32 @@ export function BacklogPage() {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="animate-pulse text-muted-foreground">Cargando tareas...</div>
+      </div>
+    )
+  }
+  
+  // Verificar permisos: solo líderes y administradores pueden ver estadísticas
+  if (!canViewAllTasks(currentUser)) {
+    // Redirigir al dashboard después de mostrar el mensaje
+    if (typeof window !== 'undefined') {
+      setTimeout(() => {
+        window.location.href = '/dashboard'
+      }, 3000)
+    }
+    
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Card className="max-w-md">
+          <CardHeader>
+            <CardTitle className="text-center">Acceso Restringido</CardTitle>
+            <CardDescription className="text-center">
+              No tienes permisos para ver las estadísticas. Solo los líderes y administradores pueden acceder a esta sección.
+            </CardDescription>
+            <CardDescription className="text-center mt-2 text-sm">
+              Serás redirigido al dashboard en unos segundos...
+            </CardDescription>
+          </CardHeader>
+        </Card>
       </div>
     )
   }
@@ -324,6 +410,198 @@ export function BacklogPage() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          
+          {/* Filtros de fecha */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 border-t pt-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="date-filter-type">Filtro de fecha</Label>
+              <Select value={dateFilterType} onValueChange={(value) => {
+                setDateFilterType(value as DateFilterType)
+                if (value === 'ninguno') {
+                  setSelectedMonth(undefined)
+                  setSelectedWeek(undefined)
+                  setStartDate(undefined)
+                  setEndDate(undefined)
+                }
+              }}>
+                <SelectTrigger id="date-filter-type">
+                  <SelectValue placeholder="Sin filtro de fecha" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ninguno">Sin filtro de fecha</SelectItem>
+                  <SelectItem value="mes">Por mes</SelectItem>
+                  <SelectItem value="semana">Por semana</SelectItem>
+                  <SelectItem value="rango">Rango de fechas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {dateFilterType === 'mes' && (
+              <div className="space-y-2 md:col-span-3">
+                <Label>Seleccionar mes</Label>
+                <Popover open={monthPopoverOpen} onOpenChange={setMonthPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {selectedMonth ? format(selectedMonth, "MMMM yyyy", { locale: es }) : "Seleccionar mes"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      selected={selectedMonth}
+                      onSelect={(date) => {
+                        if (date) {
+                          setSelectedMonth(startOfMonth(date))
+                          setMonthPopoverOpen(false)
+                        }
+                      }}
+                      month={selectedMonth || new Date()}
+                      onMonthChange={(date) => setSelectedMonth(startOfMonth(date))}
+                      locale={es}
+                      className="rounded-lg"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
+            
+            {dateFilterType === 'semana' && (
+              <div className="space-y-2 md:col-span-3">
+                <Label>Seleccionar semana</Label>
+                <Popover open={weekPopoverOpen} onOpenChange={setWeekPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {selectedWeek ? (
+                        `${format(startOfWeek(selectedWeek, { locale: es }), "dd/MM/yyyy", { locale: es })} - ${format(endOfWeek(selectedWeek, { locale: es }), "dd/MM/yyyy", { locale: es })}`
+                      ) : "Seleccionar semana"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      selected={selectedWeek ? startOfWeek(selectedWeek, { locale: es }) : undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          // Siempre seleccionar el inicio de la semana
+                          const weekStart = startOfWeek(date, { locale: es })
+                          setSelectedWeek(weekStart)
+                          setWeekPopoverOpen(false)
+                        }
+                      }}
+                      month={selectedWeek || new Date()}
+                      onMonthChange={(date) => {}}
+                      modifiers={{
+                        isWeekStart: (date) => {
+                          const weekStart = startOfWeek(date, { locale: es })
+                          return isSameDay(date, weekStart)
+                        }
+                      }}
+                      modifiersClassNames={{
+                        isWeekStart: 'bg-primary/20 border-2 border-primary font-semibold'
+                      }}
+                      locale={es}
+                      className="rounded-lg"
+                    />
+                    {selectedWeek && (
+                      <div className="p-3 border-t">
+                        <div className="text-sm text-center">
+                          <div className="font-medium">Semana seleccionada:</div>
+                          <div className="text-muted-foreground">
+                            {format(startOfWeek(selectedWeek, { locale: es }), "dd/MM/yyyy", { locale: es })} - {format(endOfWeek(selectedWeek, { locale: es }), "dd/MM/yyyy", { locale: es })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
+            
+            {dateFilterType === 'rango' && (
+              <>
+                <div className="space-y-2">
+                  <Label>Fecha inicio</Label>
+                  <Popover open={startDatePopoverOpen} onOpenChange={setStartDatePopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {startDate ? format(startDate, "PPP", { locale: es }) : "Inicio"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        selected={startDate}
+                        onSelect={(date) => {
+                          setStartDate(date)
+                          if (date) {
+                            setStartDatePopoverOpen(false)
+                          }
+                        }}
+                        month={startDate || new Date()}
+                        onMonthChange={(date) => {}}
+                        locale={es}
+                        className="rounded-lg"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Fecha fin</Label>
+                  <Popover open={endDatePopoverOpen} onOpenChange={setEndDatePopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {endDate ? format(endDate, "PPP", { locale: es }) : "Fin"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        selected={endDate}
+                        onSelect={(date) => {
+                          setEndDate(date)
+                          if (date) {
+                            setEndDatePopoverOpen(false)
+                          }
+                        }}
+                        month={endDate || new Date()}
+                        onMonthChange={(date) => {}}
+                        locale={es}
+                        className="rounded-lg"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                
+                {(startDate || endDate) && (
+                  <div className="flex items-end">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setStartDate(undefined)
+                        setEndDate(undefined)
+                      }}
+                    >
+                      Limpiar
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </CardContent>
       </Card>

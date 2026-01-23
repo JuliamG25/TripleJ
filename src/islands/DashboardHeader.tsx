@@ -43,7 +43,7 @@ export function DashboardHeader({ user, onMenuToggle }: DashboardHeaderProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 ml-auto">
         {/* Notifications */}
         <NotificationsDropdown />
 
@@ -51,11 +51,19 @@ export function DashboardHeader({ user, onMenuToggle }: DashboardHeaderProps) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2 px-2">
-              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="text-sm font-medium text-primary">
-                  {user.name.split(' ').map(n => n[0]).join('')}
-                </span>
-              </div>
+              {user.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  className="h-8 w-8 rounded-full object-cover border border-border"
+                />
+              ) : (
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="text-sm font-medium text-primary">
+                    {user.name.split(' ').map(n => n[0]).join('')}
+                  </span>
+                </div>
+              )}
               <div className="hidden md:block text-left">
                 <p className="text-sm font-medium">{user.name}</p>
                 <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
@@ -65,8 +73,20 @@ export function DashboardHeader({ user, onMenuToggle }: DashboardHeaderProps) {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Perfil</DropdownMenuItem>
-            <DropdownMenuItem>Configuración</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.location.href = '/dashboard/perfil'
+              }
+            }}>
+              Perfil
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.location.href = '/dashboard/configuracion'
+              }
+            }}>
+              Configuración
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
               className="text-destructive focus:text-destructive"

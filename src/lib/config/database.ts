@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { config } from './env';
 
 let isConnected = false;
 
@@ -18,12 +19,7 @@ export const connectDB = async (): Promise<void> => {
   }
 
   try {
-    const mongoURI = 
-      (typeof import.meta !== 'undefined' && import.meta.env?.MONGODB_URI) ||
-      process.env.MONGODB_URI ||
-      'mongodb://localhost:27017/fesc-proyectos';
-    
-    await mongoose.connect(mongoURI);
+    await mongoose.connect(config.mongoURI);
     isConnected = true;
     
     console.log('✅ MongoDB conectado correctamente');

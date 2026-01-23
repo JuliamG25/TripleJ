@@ -3,6 +3,12 @@ import { Task } from '@/lib/models/Task';
 import { Project } from '@/lib/models/Project';
 import { User } from '@/lib/models/User';
 import type { IUser } from '@/lib/models/User';
+import {
+  sendTaskAssignedEmail,
+  sendTaskUpdatedEmail,
+  sendCommentEmail,
+  sendTaskOverdueEmail,
+} from './email';
 
 /**
  * Crea una notificación cuando se asigna una tarea a un desarrollador
@@ -31,6 +37,19 @@ export async function notifyTaskAssigned(
           projectId: project._id,
           read: false,
         });
+        
+        // Enviar email si está habilitado (no crítico si falla)
+        try {
+          await sendTaskAssignedEmail(
+            assignee.email,
+            assignee.name,
+            task.title,
+            project.name,
+            assignedBy.name
+          );
+        } catch (emailError) {
+          console.warn('⚠️ Error al enviar email de tarea asignada (no crítico):', emailError);
+        }
       }
     }
   } catch (error) {
@@ -80,6 +99,19 @@ export async function notifyTaskOverdue(
         projectId: project._id,
         read: false,
       });
+      
+      // Enviar email si está habilitado (no crítico si falla)
+      try {
+        await sendTaskOverdueEmail(
+          leader.email,
+          leader.name,
+          task.title,
+          project.name,
+          developerNames
+        );
+      } catch (emailError) {
+        console.warn('⚠️ Error al enviar email de tarea vencida (no crítico):', emailError);
+      }
     }
   } catch (error) {
     console.error('Error al crear notificación de tarea vencida:', error);
@@ -152,6 +184,19 @@ export async function notifyTaskUpdated(
           projectId: project._id,
           read: false,
         });
+        
+        // Enviar email si está habilitado (no crítico si falla)
+        try {
+          await sendTaskUpdatedEmail(
+            assignee.email,
+            assignee.name,
+            task.title,
+            project.name,
+            updatedBy.name
+          );
+        } catch (emailError) {
+          console.warn('⚠️ Error al enviar email de tarea actualizada (no crítico):', emailError);
+        }
       }
     }
   } catch (error) {
@@ -200,6 +245,20 @@ export async function notifyCommentAdded(
           read: false,
         });
         notifiedUserIds.add(leader._id.toString());
+        
+        // Enviar email si está habilitado (no crítico si falla)
+        try {
+          await sendCommentEmail(
+            leader.email,
+            leader.name,
+            task.title,
+            project.name,
+            commentAuthor.name,
+            commentContent
+          );
+        } catch (emailError) {
+          console.warn('⚠️ Error al enviar email de comentario (no crítico):', emailError);
+        }
       }
 
       // Notificar a administradores
@@ -215,6 +274,20 @@ export async function notifyCommentAdded(
             read: false,
           });
           notifiedUserIds.add(admin._id.toString());
+          
+          // Enviar email si está habilitado (no crítico si falla)
+          try {
+            await sendCommentEmail(
+              admin.email,
+              admin.name,
+              task.title,
+              project.name,
+              commentAuthor.name,
+              commentContent
+            );
+          } catch (emailError) {
+            console.warn('⚠️ Error al enviar email de comentario (no crítico):', emailError);
+          }
         }
       }
     } else {
@@ -235,6 +308,20 @@ export async function notifyCommentAdded(
             read: false,
           });
           notifiedUserIds.add(assignee._id.toString());
+          
+          // Enviar email si está habilitado (no crítico si falla)
+          try {
+            await sendCommentEmail(
+              assignee.email,
+              assignee.name,
+              task.title,
+              project.name,
+              commentAuthor.name,
+              commentContent
+            );
+          } catch (emailError) {
+            console.warn('⚠️ Error al enviar email de comentario (no crítico):', emailError);
+          }
         }
       }
     }
