@@ -117,9 +117,20 @@ export function ProyectoDetailPage({ projectId }: ProyectoDetailPageProps) {
           <h1 className="text-3xl font-bold text-foreground mb-2">{project.name}</h1>
           <p className="text-muted-foreground">{project.description}</p>
         </div>
-        {canCreate && (
-          <CreateTaskForm projectId={projectId} onSuccess={handleTaskCreated} />
-        )}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              window.location.href = `/dashboard/proyectos/${projectId}/vida`
+            }}
+          >
+            <Calendar className="h-4 w-4 mr-2" />
+            Vida del Proyecto
+          </Button>
+          {canCreate && (
+            <CreateTaskForm projectId={projectId} onSuccess={handleTaskCreated} />
+          )}
+        </div>
       </div>
 
       {/* Stats */}
