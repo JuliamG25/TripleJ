@@ -132,6 +132,7 @@ export function ProyectoDetailPage({ projectId }: ProyectoDetailPageProps) {
           <p className="text-muted-foreground">{project.description}</p>
         </div>
 <<<<<<< HEAD
+<<<<<<< HEAD
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -161,6 +162,21 @@ export function ProyectoDetailPage({ projectId }: ProyectoDetailPageProps) {
           <CreateTaskForm projectId={projectId} onSuccess={handleTaskCreated} />
         )}
 >>>>>>> parent of ddc73cf (vida del proyecto)
+=======
+        {canCreate && (
+          <div className="flex gap-2">
+            {(currentUser?.role === 'administrador' || 
+              (currentUser?.role === 'lider' && project.leader.id === currentUser.id)) && (
+              <EditProjectForm 
+                project={project} 
+                onSuccess={handleProjectUpdated}
+              />
+            )}
+            <CreateMeetingForm projectId={projectId} onSuccess={handleProjectUpdated} />
+            <CreateTaskForm projectId={projectId} onSuccess={handleTaskCreated} />
+          </div>
+        )}
+>>>>>>> parent of 199c4fb (Merge branch 'main' of https://github.com/JuliamG25/TripleJ)
       </div>
 
       {/* Stats */}
